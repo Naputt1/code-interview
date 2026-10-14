@@ -96,6 +96,12 @@ export interface ServiceBoardStep {
   orderId?: number;
   quantity?: number;
   reference?: string;
+  /**
+     * Startable is meaningful on queued steps: it is true only when every
+     * earlier step of the order is done and the process has a free WIP slot,
+     * so the board can offer a Start button that will really be accepted.
+     */
+  startable?: boolean;
   startedAt?: string;
   status?: string;
   stepId?: number;
@@ -103,7 +109,7 @@ export interface ServiceBoardStep {
 
 export interface ServiceBoardColumn {
   process?: DomainProcess;
-  queued?: number;
+  queued?: ServiceBoardStep[];
   running?: ServiceBoardStep[];
 }
 

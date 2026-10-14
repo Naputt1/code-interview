@@ -1,14 +1,11 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { toast } from 'sonner'
 
-import { useGetOrdersId, useGetResources, usePostOrdersIdCancel } from '@/api/gen'
+import { useCancelOrder, useOrder, useResources } from '@/api'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { OrderStepList } from '@/features/orders/order-step-list'
 import { StatusBadge } from '@/features/orders/status-badge'
-import { errorMessage } from '@/lib/errors'
 import { formatNumber } from '@/lib/format'
 
 export const Route = createFileRoute('/orders/$orderId')({
@@ -18,20 +15,10 @@ export const Route = createFileRoute('/orders/$orderId')({
 function OrderDetailPage() {
   const { orderId } = Route.useParams()
   const id = Number(orderId)
-  const queryClient = useQueryClient()
 
-  const order = useGetOrdersId(id, { query: { refetchInterval: 4000 } })
-  const resources = useGetResources()
-
-  const cancel = usePostOrdersIdCancel({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Order cancelled')
-        queryClient.invalidateQueries()
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
+  const order = useOrder(id, true)
+  const resources = useResources()
+  const cancel = useCancelOrder()
 
   if (order.isLoading) {
     return <Skeleton className="h-64 w-full" />

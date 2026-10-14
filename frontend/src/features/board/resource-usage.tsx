@@ -1,4 +1,4 @@
-import type { ServiceResourceUsage } from '@/api/gen'
+import type { ServiceResourceUsage } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,

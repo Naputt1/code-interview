@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 
-import { useGetOrders } from '@/api/gen'
+import { useOrders } from '@/api'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -18,10 +18,8 @@ export const Route = createFileRoute('/orders/')({
   component: OrdersPage,
 })
 
-const POLL_MS = 4000
-
 function OrdersPage() {
-  const orders = useGetOrders({ query: { refetchInterval: POLL_MS } })
+  const orders = useOrders(true)
   const rows = orders.data ?? []
 
   return (

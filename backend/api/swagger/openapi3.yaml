@@ -605,7 +605,9 @@ components:
         process:
           $ref: "#/components/schemas/domain.Process"
         queued:
-          type: integer
+          items:
+            $ref: "#/components/schemas/service.BoardStep"
+          type: array
         running:
           items:
             $ref: "#/components/schemas/service.BoardStep"
@@ -619,6 +621,14 @@ components:
           type: integer
         reference:
           type: string
+        startable:
+          description: >-
+            Startable is meaningful on queued steps: it is true only when every
+
+            earlier step of the order is done and the process has a free WIP slot,
+
+            so the board can offer a Start button that will really be accepted.
+          type: boolean
         startedAt:
           type: string
         status:

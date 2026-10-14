@@ -1,10 +1,6 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-
-import type { DomainOrder, DomainResource } from '@/api/gen'
-import { usePostOrdersIdStepsStepIdComplete, usePostOrdersIdStepsStepIdStart } from '@/api/gen'
+import type { DomainOrder, DomainResource } from '@/api'
+import { useCompleteStep, useStartStep } from '@/api'
 import { Button } from '@/components/ui/button'
-import { errorMessage } from '@/lib/errors'
 import { formatDateTime, formatDuration, formatNumber } from '@/lib/format'
 
 import { StatusBadge } from './status-badge'
@@ -16,27 +12,8 @@ export function OrderStepList({
   order: DomainOrder
   resourcesById: Map<number, DomainResource>
 }) {
-  const queryClient = useQueryClient()
-
-  const start = usePostOrdersIdStepsStepIdStart({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Step started — consumption recorded')
-        queryClient.invalidateQueries()
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
-
-  const complete = usePostOrdersIdStepsStepIdComplete({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Step completed')
-        queryClient.invalidateQueries()
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
+  const start = useStartStep()
+  const complete = useCompleteStep()
 
   const orderId = order.id ?? 0
   const steps = [...(order.steps ?? [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))

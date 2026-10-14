@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import type { DomainResource, ServiceResourceInput } from '@/api/gen'
-import { usePostResources, usePutResourcesId } from '@/api/gen'
+import type { DomainResource, ServiceResourceInput } from '@/api'
+import { useCreateResource, useUpdateResource } from '@/api'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { errorMessage } from '@/lib/errors'
 
 const KINDS = ['material', 'machine', 'labour'] as const
 
@@ -34,7 +32,6 @@ export function ResourceDialog({
   resource: DomainResource | null
   onOpenChange: (open: boolean) => void
 }) {
-  const queryClient = useQueryClient()
   const [name, setName] = useState(resource?.name ?? '')
   const [kind, setKind] = useState<string>(resource?.kind ?? 'material')
   const [unit, setUnit] = useState(resource?.unit ?? '')
@@ -46,27 +43,8 @@ export function ResourceDialog({
 
   const isEdit = Boolean(resource?.id)
 
-  const create = usePostResources({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Resource created')
-        queryClient.invalidateQueries()
-        onOpenChange(false)
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
-
-  const update = usePutResourcesId({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Resource updated')
-        queryClient.invalidateQueries()
-        onOpenChange(false)
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
+  const create = useCreateResource({ onSuccess: () => onOpenChange(false) })
+  const update = useUpdateResource({ onSuccess: () => onOpenChange(false) })
 
   function submit(event: FormEvent) {
     event.preventDefault()

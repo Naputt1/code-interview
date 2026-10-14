@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 
-import type { DomainResource } from '@/api/gen'
-import { useDeleteResourcesId, useGetResources } from '@/api/gen'
+import type { DomainResource } from '@/api'
+import { useDeleteResource, useResources } from '@/api'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,26 +14,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { errorMessage } from '@/lib/errors'
 import { formatNumber } from '@/lib/format'
 
 import { ResourceDialog } from './resource-dialog'
 
 export function ResourceTable() {
-  const queryClient = useQueryClient()
-  const resources = useGetResources()
+  const resources = useResources()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<DomainResource | null>(null)
 
-  const remove = useDeleteResourcesId({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Resource deleted')
-        queryClient.invalidateQueries()
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
+  const remove = useDeleteResource()
 
   const rows = resources.data ?? []
 

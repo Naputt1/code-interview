@@ -57,8 +57,8 @@ The rules, which are the actual process reasoning:
    still referenced by a recipe or a ledger entry cannot be deleted.
 
 The four scope bullets then map onto three screens: **Setup** (define the line),
-**Orders** (create and advance), **Board** (in-progress per step, consumption,
-and the status overview).
+**Orders** (create and advance), **Board** (in-progress per step plus the queue
+behind it, consumption, and the status overview).
 
 ## 3. Software design
 
@@ -76,9 +76,12 @@ A modular monolith with a contract-first seam.
   and gives the frontend a single machine-readable source.
 - **Frontend** — Orval turns that spec into the typed client and TanStack Query
   hooks; all calls pass through one hand-written `request` helper so error
-  handling exists once. TanStack Router owns navigation; TanStack Query owns
-  server state (cached, invalidated, polled); Zustand holds only client-side view
-  preferences. The board polls every four seconds, with a pause control.
+  handling exists once, and the generated code is wrapped in a single `src/api`
+  module that owns the query keys, the poll interval and the invalidation, so a
+  step change refreshes exactly the board, orders and ledger it affects. TanStack
+  Router owns navigation; TanStack Query owns server state (cached, invalidated,
+  polled); Zustand holds only client-side view preferences. The board polls every
+  four seconds, with a pause control.
 - **Testing** — the rules are tested at the service level against a real
   PostgreSQL, because the guarantees that matter (locking, uniqueness, the
   capacity arithmetic) are database behaviour.
@@ -104,8 +107,11 @@ auto-migration in production paths** (numbered SQL migrations are the record).
    **Cancel order** is available while no step is running.
 5. **Board.** Read the state of the plant: counters for the whole order book, one
    column per process showing the orders running there (with elapsed time and a
-   one-click Complete), and the resource panel with consumed vs capacity.
-   Auto-refresh can be paused.
+   one-click Complete) and, beneath them, the queue waiting in line order. A
+   queued order can be started straight from the board, but only when its earlier
+   steps are done and the step has a free WIP slot; otherwise the card says what
+   it is waiting for. The resource panel shows consumed against capacity, and
+   auto-refresh can be paused.
 
 Starting a step that would break a rule is refused with a specific message — for
 example "Paint can only run 1 order(s) at a time" or "not enough Steel remaining"

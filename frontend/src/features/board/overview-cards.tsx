@@ -1,4 +1,4 @@
-import type { ServiceOrderCounts } from '@/api/gen'
+import type { ServiceOrderCounts } from '@/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function OverviewCards({ counts }: { counts?: ServiceOrderCounts }) {

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PauseIcon, PlayIcon } from 'lucide-react'
 
-import { useGetBoard, useGetOverview } from '@/api/gen'
+import { POLL_MS, useBoard, useOverview } from '@/api'
 import { BoardColumns } from '@/features/board/board-columns'
 import { OverviewCards } from '@/features/board/overview-cards'
 import { ResourceUsagePanel } from '@/features/board/resource-usage'
@@ -13,17 +13,14 @@ export const Route = createFileRoute('/board')({
   component: BoardPage,
 })
 
-const POLL_MS = 4000
-
 function BoardPage() {
   // Client-only view preference (zustand); the data itself belongs to TanStack
   // Query. `false` turns the interval off without touching the cached data.
   const live = useBoardPrefs((state) => state.live)
   const setLive = useBoardPrefs((state) => state.setLive)
-  const refetchInterval = live ? POLL_MS : false
 
-  const board = useGetBoard({ query: { refetchInterval } })
-  const overview = useGetOverview({ query: { refetchInterval } })
+  const board = useBoard(live)
+  const overview = useOverview(live)
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,7 +28,7 @@ function BoardPage() {
         <div>
           <h1 className="text-2xl font-semibold">Production board</h1>
           <p className="text-muted-foreground text-sm">
-            Orders in progress at each step,{' '}
+            Orders in progress at each step, and the queue behind them,{' '}
             {live ? `refreshed every ${POLL_MS / 1000}s` : 'auto-refresh paused'}.
           </p>
         </div>

@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 
-import type { DomainProcess } from '@/api/gen'
-import { useDeleteProcessesId, useGetProcesses } from '@/api/gen'
+import type { DomainProcess } from '@/api'
+import { useDeleteProcess, useProcesses } from '@/api'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { errorMessage } from '@/lib/errors'
 import { formatNumber } from '@/lib/format'
 
 import { ProcessDialog } from './process-dialog'
@@ -30,20 +27,11 @@ function inputSummary(process: DomainProcess): string {
 }
 
 export function ProcessTable() {
-  const queryClient = useQueryClient()
-  const processes = useGetProcesses()
+  const processes = useProcesses()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<DomainProcess | null>(null)
 
-  const remove = useDeleteProcessesId({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Process deleted')
-        queryClient.invalidateQueries()
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
+  const remove = useDeleteProcess()
 
   const rows = processes.data ?? []
 

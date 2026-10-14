@@ -17,12 +17,16 @@ type BoardStep struct {
 	Quantity  int        `json:"quantity"`
 	Status    string     `json:"status"`
 	StartedAt *time.Time `json:"startedAt"`
+	// Startable is meaningful on queued steps: it is true only when every
+	// earlier step of the order is done and the process has a free WIP slot,
+	// so the board can offer a Start button that will really be accepted.
+	Startable bool `json:"startable"`
 }
 
 type BoardColumn struct {
 	Process domain.Process `json:"process"`
 	Running []BoardStep    `json:"running"`
-	Queued  int            `json:"queued"`
+	Queued  []BoardStep    `json:"queued"`
 }
 
 type Board struct {
@@ -51,18 +55,47 @@ func (s *Service) Board(ctx context.Context) (*Board, error) {
 			Scan(&running).Error; err != nil {
 			return nil, fmt.Errorf("list running steps: %w", err)
 		}
-		if len(running) > 0 {
-			column.Running = running
-		}
+		column.Running = running
 
-		var queued int64
+		// Queued steps, oldest order first so the column reads as an actual
+		// queue. Each row carries whether it could start right now.
+		var rows []struct {
+			StepID     int64
+			OrderID    int64
+			Reference  string
+			Quantity   int
+			Status     string
+			StartedAt  *time.Time
+			InSequence bool
+		}
 		if err := s.db.WithContext(ctx).Table("order_steps AS os").
+			Select(`os.id AS step_id, os.order_id, o.reference, o.quantity, os.status, os.started_at,
+				NOT EXISTS (
+					SELECT 1 FROM order_steps AS x
+					WHERE x.order_id = os.order_id
+					  AND x.position < os.position
+					  AND x.status <> ?
+				) AS in_sequence`, domain.StepDone).
 			Joins("JOIN orders AS o ON o.id = os.order_id").
 			Where("os.process_id = ? AND os.status = ? AND o.status <> ?", process.ID, domain.StepQueued, domain.OrderCancelled).
-			Count(&queued).Error; err != nil {
-			return nil, fmt.Errorf("count queued steps: %w", err)
+			Order("o.created_at, os.id").
+			Scan(&rows).Error; err != nil {
+			return nil, fmt.Errorf("list queued steps: %w", err)
 		}
-		column.Queued = int(queued)
+		slotFree := process.WIPLimit == nil || len(column.Running) < *process.WIPLimit
+		queued := make([]BoardStep, 0, len(rows))
+		for _, row := range rows {
+			queued = append(queued, BoardStep{
+				StepID:    row.StepID,
+				OrderID:   row.OrderID,
+				Reference: row.Reference,
+				Quantity:  row.Quantity,
+				Status:    row.Status,
+				StartedAt: row.StartedAt,
+				Startable: row.InSequence && slotFree,
+			})
+		}
+		column.Queued = queued
 
 		board.Columns = append(board.Columns, column)
 	}

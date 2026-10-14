@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { useGetProcesses, usePostOrders } from '@/api/gen'
+import { useCreateOrder, useProcesses } from '@/api'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,25 +16,18 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { errorMessage } from '@/lib/errors'
 
 export function CreateOrderDialog() {
-  const queryClient = useQueryClient()
-  const processes = useGetProcesses()
+  const processes = useProcesses()
   const [open, setOpen] = useState(false)
   const [reference, setReference] = useState('')
   const [quantity, setQuantity] = useState('1')
 
-  const create = usePostOrders({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Order created')
-        queryClient.invalidateQueries()
-        setOpen(false)
-        setReference('')
-        setQuantity('1')
-      },
-      onError: (error) => toast.error(errorMessage(error)),
+  const create = useCreateOrder({
+    onSuccess: () => {
+      setOpen(false)
+      setReference('')
+      setQuantity('1')
     },
   })
 

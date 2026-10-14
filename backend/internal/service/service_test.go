@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -329,5 +330,103 @@ func TestStartStepWaitsForConflictingLocks(t *testing.T) {
 				t.Fatal("start was still blocked after the lock was released")
 			}
 		})
+	}
+}
+
+// boardColumn finds the board column for a process by name.
+func boardColumn(t *testing.T, board *Board, name string) BoardColumn {
+	t.Helper()
+	for _, column := range board.Columns {
+		if column.Process.Name == name {
+			return column
+		}
+	}
+	t.Fatalf("board has no column for process %q", name)
+	return BoardColumn{}
+}
+
+func references(steps []BoardStep) []string {
+	out := make([]string, 0, len(steps))
+	for _, step := range steps {
+		out = append(out, step.Reference)
+	}
+	return out
+}
+
+// The board has to show the queue behind each step in queue order, and say
+// whether each of those orders could actually start right now.
+func TestBoardListsQueuedAndFlagsStartable(t *testing.T) {
+	s := newService(t)
+	sheet := mustResource(t, s, "Sheet", domain.KindMaterial, "kg", nil)
+	mustProcess(t, s, "Cut", nil, ProcessResourceInput{ResourceID: sheet.ID, Quantity: 1})
+	mustProcess(t, s, "Weld", intPtr(1), ProcessResourceInput{ResourceID: sheet.ID, Quantity: 1})
+
+	first := mustOrder(t, s, "B-1", 1)
+	mustOrder(t, s, "B-2", 1)
+
+	board, err := s.Board(ctx)
+	if err != nil {
+		t.Fatalf("board: %v", err)
+	}
+	cut := boardColumn(t, board, "Cut")
+	weld := boardColumn(t, board, "Weld")
+
+	if len(cut.Running) != 0 {
+		t.Errorf("Cut running = %d, want 0", len(cut.Running))
+	}
+	if got, want := references(cut.Queued), []string{"B-1", "B-2"}; !slices.Equal(got, want) {
+		t.Errorf("Cut queue = %v, want %v (oldest order first)", got, want)
+	}
+	if !cut.Queued[0].Startable {
+		t.Error("the first queued Cut step should be startable")
+	}
+	for _, step := range weld.Queued {
+		if step.Startable {
+			t.Errorf("%s should be blocked at Weld until its own Cut is done", step.Reference)
+		}
+	}
+
+	// Finishing the first order's Cut frees only its own Weld step.
+	if _, err := s.StartStep(ctx, first.ID, stepID(t, first, 1)); err != nil {
+		t.Fatalf("start Cut: %v", err)
+	}
+	if _, err := s.CompleteStep(ctx, first.ID, stepID(t, first, 1)); err != nil {
+		t.Fatalf("complete Cut: %v", err)
+	}
+
+	board, err = s.Board(ctx)
+	if err != nil {
+		t.Fatalf("board: %v", err)
+	}
+	weld = boardColumn(t, board, "Weld")
+	if len(weld.Queued) != 2 {
+		t.Fatalf("Weld queued = %d, want 2", len(weld.Queued))
+	}
+	startable := map[string]bool{}
+	for _, step := range weld.Queued {
+		startable[step.Reference] = step.Startable
+	}
+	if !startable["B-1"] {
+		t.Error("B-1 should be startable at Weld once its Cut is done")
+	}
+	if startable["B-2"] {
+		t.Error("B-2 should stay blocked while its own Cut is still queued")
+	}
+
+	// Weld runs one order at a time, so taking the slot leaves the other
+	// queued step waiting rather than ready.
+	if _, err := s.StartStep(ctx, first.ID, stepID(t, first, 2)); err != nil {
+		t.Fatalf("start Weld: %v", err)
+	}
+	board, err = s.Board(ctx)
+	if err != nil {
+		t.Fatalf("board: %v", err)
+	}
+	weld = boardColumn(t, board, "Weld")
+	if got, want := references(weld.Running), []string{"B-1"}; !slices.Equal(got, want) {
+		t.Errorf("Weld running = %v, want %v", got, want)
+	}
+	if len(weld.Queued) != 1 || weld.Queued[0].Startable {
+		t.Error("the queued Weld step should not be startable while the slot is taken")
 	}
 }

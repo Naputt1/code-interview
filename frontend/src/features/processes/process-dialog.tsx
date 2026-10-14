@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import type { DomainProcess, ServiceProcessInput } from '@/api/gen'
-import { useGetResources, usePostProcesses, usePutProcessesId } from '@/api/gen'
+import type { DomainProcess, ServiceProcessInput } from '@/api'
+import { useCreateProcess, useResources, useUpdateProcess } from '@/api'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { errorMessage } from '@/lib/errors'
 
 type InputRow = { resourceId: number; quantity: string }
 
@@ -35,8 +33,7 @@ export function ProcessDialog({
   process: DomainProcess | null
   onOpenChange: (open: boolean) => void
 }) {
-  const queryClient = useQueryClient()
-  const resources = useGetResources()
+  const resources = useResources()
   const [name, setName] = useState(process?.name ?? '')
   const [wipLimit, setWipLimit] = useState(
     process?.wipLimit === undefined || process?.wipLimit === null ? '' : String(process.wipLimit),
@@ -50,27 +47,8 @@ export function ProcessDialog({
 
   const isEdit = Boolean(process?.id)
 
-  const create = usePostProcesses({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Process created')
-        queryClient.invalidateQueries()
-        onOpenChange(false)
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
-
-  const update = usePutProcessesId({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Process updated')
-        queryClient.invalidateQueries()
-        onOpenChange(false)
-      },
-      onError: (error) => toast.error(errorMessage(error)),
-    },
-  })
+  const create = useCreateProcess({ onSuccess: () => onOpenChange(false) })
+  const update = useUpdateProcess({ onSuccess: () => onOpenChange(false) })
 
   const resourceOptions = resources.data ?? []
 

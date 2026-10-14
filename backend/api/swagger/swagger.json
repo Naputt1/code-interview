@@ -869,7 +869,10 @@
                     "$ref": "#/definitions/domain.Process"
                 },
                 "queued": {
-                    "type": "integer"
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.BoardStep"
+                    }
                 },
                 "running": {
                     "type": "array",
@@ -890,6 +893,10 @@
                 },
                 "reference": {
                     "type": "string"
+                },
+                "startable": {
+                    "description": "Startable is meaningful on queued steps: it is true only when every\nearlier step of the order is done and the process has a free WIP slot,\nso the board can offer a Start button that will really be accepted.",
+                    "type": "boolean"
                 },
                 "startedAt": {
                     "type": "string"
