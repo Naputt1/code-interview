@@ -2,95 +2,103 @@
 
 ## 1. Summary of the requirements
 
-The prototype must make a manufacturing process observable: work runs through a
-defined sequence of steps, each step may handle several orders at once, and each
-consumes resources such as materials, machine time or labour. A user must create
-orders and advance them through the steps, see what is in progress at each step,
-watch consumption as work progresses, and get an overview of every order. The
-assignment leaves the definitions, the rules and the UI open, and weights
+The prototype has to make a manufacturing process observable. Work runs through a
+defined sequence of steps, each of which may handle several orders at once and
+consume resources such as materials, machine time or labour. A user must
+create orders and advance them through the steps, see what is in progress at each
+step, watch consumption as work progresses, and get an overview of every order.
+The assignment leaves the definitions, the rules and the UI open, and weights
 reasoning about the process above any single feature.
 
 ## 2. Turning the requirement into a functional specification
 
-"Steps" and "resources" are **configuration, not code**: a **Setup** screen
-defines the line at runtime, and nothing about the sequence is hard-coded.
+Steps and resources are records the user creates in the app. Nothing in the code
+assumes a particular line, so **Setup** can define one at runtime.
 
-- **Resource** — name, kind (material / machine / labour), unit; capacity is
-  optional, empty meaning unlimited.
-- **Process** (a step) — a workstation at a `position`, an optional WIP limit, and
-  a **recipe** of resources with a quantity per unit.
-- **Order** — reference and quantity; creating one *snapshots* the line into its
-  steps, so later edits do not rewrite work already in flight.
-- **Order step** — one order at one process, `queued → running → done`; several
-  running steps on one process is the assignment's "one or more orders
-  concurrently".
-- **Consumption** — an append-only ledger row of which step used which resource,
-  how much and when; every UI figure aggregates over it.
+- **Resource.** A name, a kind (material, machine or labour) and a unit. Capacity
+  is optional, and an empty capacity means unlimited.
+- **Process.** A single step, with a position in the sequence, an optional WIP
+  limit, and a recipe of the resources it consumes per unit.
+- **Order.** A reference and a quantity. Creating one copies the current line into
+  its steps, so later edits do not rewrite work already in flight.
+- **Order step.** One order at one process, moving through queued, running and
+  done. Several steps running at the same process is the assignment's "one or more
+  orders concurrently".
+- **Consumption.** An append-only ledger of which step used which resource, how
+  much and when. Every UI figure aggregates over it.
 
 The rules:
 
-1. **Sequence** — a step starts only once every earlier step on that order is done.
-2. **Consumption on start** — starting records recipe × quantity, so consumption
-   is visible during the work, not only after it.
-3. **Capacity** — a start exceeding a finite resource's remaining capacity is
-   refused before anything is written, so no partial step reaches the ledger.
-4. **WIP limit** — a start is refused while the process already runs its limit.
-5. **One running step per order** — an order is `done` when every step is.
-6. **Cancellation** — only before any step has started, so cancelling never strands
-   committed resources; anything still referenced by a recipe or ledger entry
-   cannot be deleted.
+1. **Sequence.** A step starts only once every earlier step on that order is done.
+2. **Consumption on start.** Starting a step writes recipe × order quantity, so
+   consumption is visible during the work, not only after it.
+3. **Capacity.** A start that would exceed a finite resource's remaining stock is
+   refused before anything is written, so no half-recorded step reaches the ledger.
+4. **WIP limit.** A start is refused while the process is already running its
+   limit.
+5. **One running step per order.** An order becomes done when every step is done.
+6. **Cancellation.** An order can be cancelled only before any step has started, so
+   cancelling never strands committed resources.
+7. **Referential integrity.** A resource or process still referenced by a recipe or
+   a ledger row cannot be deleted.
 
-The four scope bullets map onto three screens: **Setup** (define the line),
-**Orders** (create and advance), **Board** (in-progress per step, the queue behind
-it, consumption and the overview).
+The four scope bullets map onto three screens. **Setup** defines the line,
+**Orders** creates and advances, and **Board** shows what is in progress at each
+step with the queue behind it, the consumption and the overview.
 
 ## 3. Software design
 
-A modular monolith with a contract-first seam.
+The backend is a modular monolith.
 
-- **Go API** — `service` owns every rule and is the only writer; order transitions
-  run in one transaction that locks the order, the process and its resources in a
-  fixed order, so two concurrent starts cannot both pass the WIP or capacity
-  checks. `httpapi` is a thin Gin layer mapping domain errors to HTTP codes.
-- **Contract** — swaggo annotations generate the committed OpenAPI spec, giving the
-  frontend one machine-readable source.
-- **Frontend** — Orval generates the typed client and Query hooks; all calls pass
-  through one `request` helper, and a single `src/api` module owns the keys, the
-  poll interval and the invalidation. Router owns navigation, Query owns server
-  state, Zustand only view preferences.
-- **Testing** — the rules are tested against a real PostgreSQL, because the
-  guarantees that matter (locking, uniqueness, capacity arithmetic) are database
-  behaviour.
+- **Service layer.** All the rules live in `service`, which is the only code that
+  writes. Starting a step runs in one transaction that locks the order, the process
+  and the resources it consumes, always in the same order, so two starts racing for
+  the last WIP slot cannot both get in. `httpapi` is a thin Gin layer that maps
+  domain errors to HTTP status codes.
+- **Contract.** Swagger annotations in the handlers generate the OpenAPI spec,
+  which is committed, so the frontend has one machine-readable source instead of
+  hand-written request types.
+- **Frontend.** Orval generates the typed client and the Query hooks from that
+  spec. Every call goes through one `request` helper, and a single `src/api` module
+  owns the query keys, the poll interval and the invalidation. TanStack Router
+  handles navigation, TanStack Query holds server state, and Zustand holds only
+  view preferences.
+- **Testing.** The rules are tested against a real PostgreSQL. Locking, uniqueness
+  and the capacity arithmetic are database behaviour, so an in-memory double would
+  not prove anything.
 
-Excluded on purpose: **authentication** (the assignment is about the process, not
-identity), **streaming** (polling keeps the demo dependency-free while "live"
-behaviour stays observable), **ORM auto-migration** (numbered SQL migrations are
-the record).
+Three things are deliberately absent. There is no authentication, since the
+assignment is about the process rather than who runs it. The board polls instead of
+streaming, which keeps the demo to one dependency and still shows the state
+changing. Migrations are numbered SQL files, so the schema history is readable.
 
 ## 4. Simplified user manual
 
-1. **Setup → Resources.** Kind, unit, and a capacity only if it is finite (empty
-   for labour).
-2. **Setup → Processes.** Steps in order, each with a WIP limit and a recipe (e.g.
-   `Cut` consumes `Steel ×0.5`).
-3. **Orders → New order.** A reference and a quantity; one queued step per process.
-4. **Work the order.** Only the next step can start. **Start** records consumption
-   immediately, **Complete** releases the next one. Cancel is offered wherever an
-   order is listed, and only before it starts.
-5. **Board.** Counters for the order book; per process, what is being worked there
-   and the queue behind it. An order appears only at the step it has reached, and a
-   waiting order starts straight from the board unless the WIP limit is full. The
-   resource panel shows consumed against capacity.
+1. **Setup, Resources.** Give each resource a kind and a unit. Add a capacity only
+   if it is finite, and leave it empty for things like labour.
+2. **Setup, Processes.** Add the steps in order. Each one gets a WIP limit and a
+   recipe, for example `Cut` consuming `Steel ×0.5` per unit.
+3. **Orders, New order.** Enter a reference and a quantity. The app creates one
+   queued step per process.
+4. **Work the order.** Only the next step can start. **Start** records the
+   consumption straight away and **Complete** releases the following step. Cancel
+   is offered wherever an order is listed, and only while it has not started.
+5. **Board.** Counters show the whole order book. Each process column shows what is
+   being worked there and the queue behind it. An order appears only at the step it
+   has reached, and a waiting order can be started straight from the board unless
+   the WIP limit is full. The resource panel shows consumed against capacity.
 
-Breaking a rule is refused with a specific message — "Paint can only run 1 order(s)
-at a time" — so the constraint is learned rather than silently failing.
+A refused action says why, for example "Paint can only run 1 order(s) at a time".
 
 ## 5. Summary of the software
 
-Go + PostgreSQL + Gin behind a generated OpenAPI contract, with a React + TanStack
-front end whose client is generated from it. The line is user-defined, orders
-advance through a strictly enforced sequence, and every unit of consumption is an
-auditable ledger row the UI aggregates into progress and load. Known limits: no
-authentication or per-user scoping; polling rather than streaming; consumption is
-committed at step start, so a started-but-unfinished step stays on the books; and
-steps cannot be skipped or partially completed.
+Go and PostgreSQL behind a Gin API. The OpenAPI contract is generated from the
+handlers and the React client is generated from the contract. The
+line is defined by the user, orders move through a strictly enforced sequence, and
+every unit of consumption is a ledger row that the UI aggregates into progress and
+load.
+
+Known limits: there is no authentication or per-user scoping; the board polls
+rather than streaming; consumption is committed when a step starts, so a step that
+was started and never finished stays on the books; and steps cannot be skipped or
+partially completed.
