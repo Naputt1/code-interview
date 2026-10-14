@@ -101,7 +101,14 @@ cd frontend && pnpm install && pnpm dev            # http://localhost:5173
 ```
 
 The database defaults (`tracker/tracker/tracker`) match the Compose service, and
-the Vite dev server proxies `/api` to the API.
+the Vite dev server proxies `/api` to the API. Both default to port 8080 — but
+if fog's router is already running it holds that port for its dashboard, so
+start the API elsewhere and point the dev server at it:
+
+```sh
+SERVER_ADDR=:8090 make run                        # in backend
+API_PROXY_TARGET=http://127.0.0.1:8090 pnpm dev   # in frontend
+```
 
 ### Option C — an existing Postgres, no Docker
 

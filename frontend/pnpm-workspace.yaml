@@ -1,2 +1,5 @@
-onlyBuiltDependencies:
-  - esbuild
+# pnpm 12 refuses to run a dependency's install scripts until it is told to.
+# esbuild ships its platform binary through a postinstall, so allow it here;
+# without this a fresh `pnpm install` exits non-zero with ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  esbuild: true
