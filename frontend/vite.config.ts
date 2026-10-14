@@ -21,6 +21,9 @@ export default defineConfig({
   },
   server: {
     host: true,
+    // fog serves this app at <branch>.code-interview through its router; the
+    // leading dot trusts the bare domain and every branch subdomain.
+    allowedHosts: ['.code-interview'],
     port: Number(process.env.PORT ?? 5173),
     proxy: {
       // Single origin in dev: the browser calls /api and Vite forwards to Go.
