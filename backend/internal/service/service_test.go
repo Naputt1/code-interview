@@ -353,8 +353,9 @@ func references(steps []BoardStep) []string {
 	return out
 }
 
-// The board has to show the queue behind each step in queue order, and say
-// whether each of those orders could actually start right now.
+// The board shows what runs at each step and what is next in line for it: an
+// order appears only in the column of its current step, never further down its
+// route, and a queued step says whether it can start right now.
 func TestBoardListsQueuedAndFlagsStartable(t *testing.T) {
 	s := newService(t)
 	sheet := mustResource(t, s, "Sheet", domain.KindMaterial, "kg", nil)
@@ -362,7 +363,8 @@ func TestBoardListsQueuedAndFlagsStartable(t *testing.T) {
 	mustProcess(t, s, "Weld", intPtr(1), ProcessResourceInput{ResourceID: sheet.ID, Quantity: 1})
 
 	first := mustOrder(t, s, "B-1", 1)
-	mustOrder(t, s, "B-2", 1)
+	second := mustOrder(t, s, "B-2", 1)
+	mustOrder(t, s, "B-3", 1)
 
 	board, err := s.Board(ctx)
 	if err != nil {
@@ -371,22 +373,18 @@ func TestBoardListsQueuedAndFlagsStartable(t *testing.T) {
 	cut := boardColumn(t, board, "Cut")
 	weld := boardColumn(t, board, "Weld")
 
-	if len(cut.Running) != 0 {
-		t.Errorf("Cut running = %d, want 0", len(cut.Running))
-	}
-	if got, want := references(cut.Queued), []string{"B-1", "B-2"}; !slices.Equal(got, want) {
+	if got, want := references(cut.Queued), []string{"B-1", "B-2", "B-3"}; !slices.Equal(got, want) {
 		t.Errorf("Cut queue = %v, want %v (oldest order first)", got, want)
 	}
 	if !cut.Queued[0].Startable {
 		t.Error("the first queued Cut step should be startable")
 	}
-	for _, step := range weld.Queued {
-		if step.Startable {
-			t.Errorf("%s should be blocked at Weld until its own Cut is done", step.Reference)
-		}
+	// Every order is still at Cut, so none of them belongs in Weld yet.
+	if len(weld.Queued) != 0 {
+		t.Errorf("Weld queue = %v, want empty while every order is still at Cut", references(weld.Queued))
 	}
 
-	// Finishing the first order's Cut frees only its own Weld step.
+	// Finishing the first order's Cut moves it — and only it — into Weld.
 	if _, err := s.StartStep(ctx, first.ID, stepID(t, first, 1)); err != nil {
 		t.Fatalf("start Cut: %v", err)
 	}
@@ -398,26 +396,29 @@ func TestBoardListsQueuedAndFlagsStartable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("board: %v", err)
 	}
+	if got, want := references(boardColumn(t, board, "Cut").Queued), []string{"B-2", "B-3"}; !slices.Equal(got, want) {
+		t.Errorf("Cut queue = %v, want %v once B-1 moved on", got, want)
+	}
 	weld = boardColumn(t, board, "Weld")
-	if len(weld.Queued) != 2 {
-		t.Fatalf("Weld queued = %d, want 2", len(weld.Queued))
+	if got, want := references(weld.Queued), []string{"B-1"}; !slices.Equal(got, want) {
+		t.Errorf("Weld queue = %v, want %v (only the order that reached Weld)", got, want)
 	}
-	startable := map[string]bool{}
-	for _, step := range weld.Queued {
-		startable[step.Reference] = step.Startable
-	}
-	if !startable["B-1"] {
+	if !weld.Queued[0].Startable {
 		t.Error("B-1 should be startable at Weld once its Cut is done")
 	}
-	if startable["B-2"] {
-		t.Error("B-2 should stay blocked while its own Cut is still queued")
-	}
 
-	// Weld runs one order at a time, so taking the slot leaves the other
-	// queued step waiting rather than ready.
+	// Weld runs one order at a time. Take the slot, then let the next order
+	// reach Weld: it queues up but cannot start.
 	if _, err := s.StartStep(ctx, first.ID, stepID(t, first, 2)); err != nil {
 		t.Fatalf("start Weld: %v", err)
 	}
+	if _, err := s.StartStep(ctx, second.ID, stepID(t, second, 1)); err != nil {
+		t.Fatalf("start B-2 Cut: %v", err)
+	}
+	if _, err := s.CompleteStep(ctx, second.ID, stepID(t, second, 1)); err != nil {
+		t.Fatalf("complete B-2 Cut: %v", err)
+	}
+
 	board, err = s.Board(ctx)
 	if err != nil {
 		t.Fatalf("board: %v", err)
@@ -426,7 +427,10 @@ func TestBoardListsQueuedAndFlagsStartable(t *testing.T) {
 	if got, want := references(weld.Running), []string{"B-1"}; !slices.Equal(got, want) {
 		t.Errorf("Weld running = %v, want %v", got, want)
 	}
-	if len(weld.Queued) != 1 || weld.Queued[0].Startable {
-		t.Error("the queued Weld step should not be startable while the slot is taken")
+	if got, want := references(weld.Queued), []string{"B-2"}; !slices.Equal(got, want) {
+		t.Errorf("Weld queue = %v, want %v", got, want)
+	}
+	if weld.Queued[0].Startable {
+		t.Error("B-2 should wait while B-1 holds the only Weld slot")
 	}
 }

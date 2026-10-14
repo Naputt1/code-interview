@@ -106,12 +106,14 @@ auto-migration in production paths** (numbered SQL migrations are the record).
    step and releases the next one. The order is `done` when all steps are done.
    **Cancel order** is available while no step is running.
 5. **Board.** Read the state of the plant: counters for the whole order book, one
-   column per process showing the orders running there (with elapsed time and a
-   one-click Complete) and, beneath them, the queue waiting in line order. A
-   queued order can be started straight from the board, but only when its earlier
-   steps are done and the step has a free WIP slot; otherwise the card says what
-   it is waiting for. The resource panel shows consumed against capacity, and
-   auto-refresh can be paused.
+   column per process showing the orders being worked there (with elapsed time
+   and a one-click Complete) and, beneath them, the orders waiting at that step
+   in line order. An order appears only at the step it has actually reached, so a
+   column shows what is in progress there and what is next for it — never the
+   steps further down an order's route. A waiting order can be started straight
+   from the board unless the step's WIP limit is full, in which case the card says
+   so. The resource panel shows consumed against capacity, and auto-refresh can
+   be paused.
 
 Starting a step that would break a rule is refused with a specific message — for
 example "Paint can only run 1 order(s) at a time" or "not enough Steel remaining"

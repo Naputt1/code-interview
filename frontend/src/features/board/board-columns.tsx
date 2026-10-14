@@ -26,7 +26,6 @@ export function BoardColumns({ columns }: { columns: ServiceBoardColumn[] }) {
         const running = column.running ?? []
         const queued = column.queued ?? []
         const wipLimit = process?.wipLimit
-        const slotsFull = wipLimit !== undefined && wipLimit !== null && running.length >= wipLimit
 
         return (
           <Card key={process?.id ?? 0} className="w-72 shrink-0 gap-0 py-0">
@@ -116,11 +115,7 @@ export function BoardColumns({ columns }: { columns: ServiceBoardColumn[] }) {
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="text-muted-foreground text-xs">
-                          {step.startable
-                            ? 'Ready to start'
-                            : slotsFull
-                              ? 'Waiting for a free slot'
-                              : 'Previous step unfinished'}
+                          {step.startable ? 'Ready to start' : 'Waiting for a free slot'}
                         </span>
                         <Button
                           size="sm"

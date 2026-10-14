@@ -57,43 +57,29 @@ func (s *Service) Board(ctx context.Context) (*Board, error) {
 		}
 		column.Running = running
 
-		// Queued steps, oldest order first so the column reads as an actual
-		// queue. Each row carries whether it could start right now.
-		var rows []struct {
-			StepID     int64
-			OrderID    int64
-			Reference  string
-			Quantity   int
-			Status     string
-			StartedAt  *time.Time
-			InSequence bool
-		}
+		// Queued steps whose turn it actually is. An order appears only in the
+		// column of its current step, so a column shows what is running there
+		// plus what is next in line for it — never the steps further down an
+		// order's route. Oldest order first, so the column reads as a queue.
+		queued := []BoardStep{}
 		if err := s.db.WithContext(ctx).Table("order_steps AS os").
-			Select(`os.id AS step_id, os.order_id, o.reference, o.quantity, os.status, os.started_at,
-				NOT EXISTS (
-					SELECT 1 FROM order_steps AS x
-					WHERE x.order_id = os.order_id
-					  AND x.position < os.position
-					  AND x.status <> ?
-				) AS in_sequence`, domain.StepDone).
+			Select("os.id AS step_id, os.order_id, o.reference, o.quantity, os.status, os.started_at").
 			Joins("JOIN orders AS o ON o.id = os.order_id").
-			Where("os.process_id = ? AND os.status = ? AND o.status <> ?", process.ID, domain.StepQueued, domain.OrderCancelled).
+			Where(`os.process_id = ? AND os.status = ? AND o.status <> ?
+				AND NOT EXISTS (
+					SELECT 1 FROM order_steps AS earlier
+					WHERE earlier.order_id = os.order_id
+					  AND earlier.position < os.position
+					  AND earlier.status <> ?
+				)`, process.ID, domain.StepQueued, domain.OrderCancelled, domain.StepDone).
 			Order("o.created_at, os.id").
-			Scan(&rows).Error; err != nil {
+			Scan(&queued).Error; err != nil {
 			return nil, fmt.Errorf("list queued steps: %w", err)
 		}
+		// Every row above is next in line, so only the WIP limit can hold it back.
 		slotFree := process.WIPLimit == nil || len(column.Running) < *process.WIPLimit
-		queued := make([]BoardStep, 0, len(rows))
-		for _, row := range rows {
-			queued = append(queued, BoardStep{
-				StepID:    row.StepID,
-				OrderID:   row.OrderID,
-				Reference: row.Reference,
-				Quantity:  row.Quantity,
-				Status:    row.Status,
-				StartedAt: row.StartedAt,
-				Startable: row.InSequence && slotFree,
-			})
+		for i := range queued {
+			queued[i].Startable = slotFree
 		}
 		column.Queued = queued
 
