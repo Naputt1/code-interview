@@ -1,0 +1,23 @@
+# Run `make lint`. The linter set is listed explicitly so that upgrading
+# golangci-lint cannot silently change what the gate checks.
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - bodyclose
+    - errcheck
+    - errorlint
+    - gocritic
+    - govet
+    - ineffassign
+    - misspell
+    - prealloc
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

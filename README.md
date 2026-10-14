@@ -55,9 +55,11 @@ backend/
   internal/store/            # connection + embedded migration runner
   migrations/                # 000001_init.{up,down}.sql, embedded
   api/swagger/openapi3.yaml  # committed contract, generated from annotations
-  Makefile                   # run / build / test / vet / fmt / check / swagger
+  Makefile                   # run / build / test / vet / lint / fmt / check / swagger
+  .golangci.yml              # lint config
 frontend/
   orval.config.ts            # contract -> typed TanStack Query client
+  .prettierrc.json           # formatting; pnpm format / pnpm format:check
   src/api/                   # client.ts + mutator.ts (hand-written transport),
                              # gen/ (generated) and the keys/queries/mutations
                              # module the app imports instead of gen/ directly
@@ -67,6 +69,7 @@ frontend/
   src/state/                 # zustand store (client-only prefs)
 infra/docker-compose.yml     # Postgres for local development
 fog.json                     # local dev orchestration
+.github/workflows/ci.yml     # format, lint, tests, contract drift
 ```
 
 ## Getting started
@@ -141,10 +144,16 @@ in one place.
 ## Checks
 
 ```sh
-cd backend  && make check        # gofmt + go vet + go test (needs Postgres)
-cd frontend && pnpm check        # tsc + oxlint
+cd backend  && make check        # gofmt check + go vet + golangci-lint + tests
+cd frontend && pnpm check        # tsc + oxlint + prettier check
 cd frontend && pnpm build        # typecheck + production build
 ```
+
+`make fmt` rewrites Go files and `pnpm format` rewrites the frontend, so neither
+runs as part of a check. `make lint` runs golangci-lint on its own and needs
+`golangci-lint` (v1.64.8) on your PATH. [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+runs the same commands, plus a job that regenerates the contract and fails if the
+committed spec or client is out of date.
 
 The backend tests cover the rules rather than the plumbing: sequence enforcement,
 WIP limits, capacity refusal without partial consumption, consumption recorded once

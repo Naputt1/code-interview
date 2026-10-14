@@ -27,7 +27,10 @@ function OrderDetailPage() {
   if (order.isError || !order.data) {
     return (
       <div className="flex flex-col gap-4">
-        <Link to="/orders" className="text-muted-foreground text-sm hover:underline">
+        <Link
+          to="/orders"
+          className="text-muted-foreground text-sm hover:underline"
+        >
           ← Back to orders
         </Link>
         <p className="text-destructive text-sm">Order not found.</p>
@@ -41,11 +44,16 @@ function OrderDetailPage() {
   // An order can only be cancelled before any of its steps has started.
   const cancellable = data.status === 'pending'
 
-  const resourcesById = new Map((resources.data ?? []).map((resource) => [resource.id ?? 0, resource]))
+  const resourcesById = new Map(
+    (resources.data ?? []).map((resource) => [resource.id ?? 0, resource]),
+  )
 
   return (
     <div className="flex flex-col gap-6">
-      <Link to="/orders" className="text-muted-foreground text-sm hover:underline">
+      <Link
+        to="/orders"
+        className="text-muted-foreground text-sm hover:underline"
+      >
         ← Back to orders
       </Link>
 
@@ -56,7 +64,8 @@ function OrderDetailPage() {
             <StatusBadge status={data.status} />
           </div>
           <p className="text-muted-foreground text-sm">
-            Quantity {formatNumber(data.quantity)} · {doneCount}/{steps.length} steps complete
+            Quantity {formatNumber(data.quantity)} · {doneCount}/{steps.length}{' '}
+            steps complete
           </p>
         </div>
 

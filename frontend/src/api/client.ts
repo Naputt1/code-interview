@@ -32,7 +32,10 @@ function safeJson(text: string): unknown {
   }
 }
 
-export async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(
+  url: string,
+  init: RequestInit = {},
+): Promise<T> {
   const response = await fetch(withApiBase(url), {
     ...init,
     headers: {
@@ -49,7 +52,9 @@ export async function request<T>(url: string, init: RequestInit = {}): Promise<T
   const payload = text ? safeJson(text) : undefined
 
   if (!response.ok) {
-    const detail = (payload as { error?: { code?: string; message?: string } } | undefined)?.error
+    const detail = (
+      payload as { error?: { code?: string; message?: string } } | undefined
+    )?.error
     throw new ApiError(
       response.status,
       detail?.code ?? 'http_error',

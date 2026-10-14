@@ -53,13 +53,19 @@ function OrdersPage() {
             <TableBody>
               {rows.map((order) => {
                 const steps = order.steps ?? []
-                const done = steps.filter((step) => step.status === 'done').length
+                const done = steps.filter(
+                  (step) => step.status === 'done',
+                ).length
                 const current = steps.find((step) => step.status === 'running')
 
                 return (
                   <TableRow key={order.id}>
                     <TableCell className="pl-6 font-medium">
-                      <Link to="/orders/$orderId" params={{ orderId: String(order.id) }} className="hover:underline">
+                      <Link
+                        to="/orders/$orderId"
+                        params={{ orderId: String(order.id) }}
+                        className="hover:underline"
+                      >
                         {order.reference}
                       </Link>
                     </TableCell>
@@ -87,7 +93,10 @@ function OrdersPage() {
               })}
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
+                  <TableCell
+                    colSpan={6}
+                    className="text-muted-foreground py-8 text-center"
+                  >
                     No orders yet. Create one to start tracking.
                   </TableCell>
                 </TableRow>

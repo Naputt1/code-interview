@@ -1,6 +1,11 @@
-export function formatNumber(value: number | null | undefined, maximumFractionDigits = 2): string {
+export function formatNumber(
+  value: number | null | undefined,
+  maximumFractionDigits = 2,
+): string {
   if (value === null || value === undefined) return '—'
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value)
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(
+    value,
+  )
 }
 
 export function formatDateTime(value: string | null | undefined): string {
@@ -10,7 +15,10 @@ export function formatDateTime(value: string | null | undefined): string {
   return date.toLocaleString()
 }
 
-export function formatDuration(from: string | null | undefined, to?: string | null): string {
+export function formatDuration(
+  from: string | null | undefined,
+  to?: string | null,
+): string {
   if (!from) return '—'
   const start = new Date(from).getTime()
   const end = to ? new Date(to).getTime() : Date.now()

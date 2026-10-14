@@ -14,7 +14,8 @@ function SetupPage() {
       <header>
         <h1 className="text-2xl font-semibold">Setup</h1>
         <p className="text-muted-foreground text-sm">
-          Define the resources each step consumes, then the ordered steps themselves.
+          Define the resources each step consumes, then the ordered steps
+          themselves.
         </p>
       </header>
 

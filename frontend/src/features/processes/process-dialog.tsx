@@ -36,7 +36,9 @@ export function ProcessDialog({
   const resources = useResources()
   const [name, setName] = useState(process?.name ?? '')
   const [wipLimit, setWipLimit] = useState(
-    process?.wipLimit === undefined || process?.wipLimit === null ? '' : String(process.wipLimit),
+    process?.wipLimit === undefined || process?.wipLimit === null
+      ? ''
+      : String(process.wipLimit),
   )
   const [rows, setRows] = useState<InputRow[]>(
     (process?.inputs ?? []).map((input) => ({
@@ -58,7 +60,10 @@ export function ProcessDialog({
       toast.error('Create a resource first')
       return
     }
-    setRows((current) => [...current, { resourceId: firstResource.id ?? 0, quantity: '1' }])
+    setRows((current) => [
+      ...current,
+      { resourceId: firstResource.id ?? 0, quantity: '1' },
+    ])
   }
 
   function submit(event: FormEvent) {
@@ -70,7 +75,10 @@ export function ProcessDialog({
     }
 
     const parsedWip = wipLimit.trim() === '' ? undefined : Number(wipLimit)
-    if (parsedWip !== undefined && (!Number.isInteger(parsedWip) || parsedWip < 1)) {
+    if (
+      parsedWip !== undefined &&
+      (!Number.isInteger(parsedWip) || parsedWip < 1)
+    ) {
       toast.error('WIP limit must be a whole number of one or more, or blank')
       return
     }
@@ -80,8 +88,17 @@ export function ProcessDialog({
       quantity: Number(row.quantity),
     }))
 
-    if (inputs.some((input) => !input.resourceId || !Number.isFinite(input.quantity) || input.quantity <= 0)) {
-      toast.error('Each input needs a resource and a quantity greater than zero')
+    if (
+      inputs.some(
+        (input) =>
+          !input.resourceId ||
+          !Number.isFinite(input.quantity) ||
+          input.quantity <= 0,
+      )
+    ) {
+      toast.error(
+        'Each input needs a resource and a quantity greater than zero',
+      )
       return
     }
 
@@ -140,7 +157,12 @@ export function ProcessDialog({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <Label>Resources consumed per unit</Label>
-              <Button type="button" size="sm" variant="outline" onClick={addRow}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={addRow}
+              >
                 <Plus /> Add resource
               </Button>
             </div>
@@ -157,7 +179,9 @@ export function ProcessDialog({
                     onValueChange={(value) =>
                       setRows((current) =>
                         current.map((item, i) =>
-                          i === index ? { ...item, resourceId: Number(value) } : item,
+                          i === index
+                            ? { ...item, resourceId: Number(value) }
+                            : item,
                         ),
                       )
                     }
@@ -167,7 +191,10 @@ export function ProcessDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {resourceOptions.map((resource) => (
-                        <SelectItem key={resource.id} value={String(resource.id)}>
+                        <SelectItem
+                          key={resource.id}
+                          value={String(resource.id)}
+                        >
                           {resource.name} ({resource.unit})
                         </SelectItem>
                       ))}
@@ -182,7 +209,9 @@ export function ProcessDialog({
                     onChange={(event) =>
                       setRows((current) =>
                         current.map((item, i) =>
-                          i === index ? { ...item, quantity: event.target.value } : item,
+                          i === index
+                            ? { ...item, quantity: event.target.value }
+                            : item,
                         ),
                       )
                     }
@@ -192,7 +221,11 @@ export function ProcessDialog({
                     size="icon"
                     variant="ghost"
                     aria-label="Remove resource"
-                    onClick={() => setRows((current) => current.filter((_, i) => i !== index))}
+                    onClick={() =>
+                      setRows((current) =>
+                        current.filter((_, i) => i !== index),
+                      )
+                    }
                   >
                     <Trash2 />
                   </Button>
@@ -202,7 +235,11 @@ export function ProcessDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>

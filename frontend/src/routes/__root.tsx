@@ -1,6 +1,11 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { ClipboardList, Factory, LayoutDashboard, Settings2 } from 'lucide-react'
+import {
+  ClipboardList,
+  Factory,
+  LayoutDashboard,
+  Settings2,
+} from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 

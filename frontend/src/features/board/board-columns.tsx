@@ -49,10 +49,15 @@ export function BoardColumns({ columns }: { columns: ServiceBoardColumn[] }) {
 
             <div className="flex max-h-[32rem] flex-col gap-2 overflow-y-auto p-3">
               {running.length === 0 ? (
-                <p className="text-muted-foreground py-4 text-center text-xs">Nothing running</p>
+                <p className="text-muted-foreground py-4 text-center text-xs">
+                  Nothing running
+                </p>
               ) : (
                 running.map((step) => (
-                  <div key={step.stepId} className="bg-background rounded-md border p-3">
+                  <div
+                    key={step.stepId}
+                    className="bg-background rounded-md border p-3"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <Link
                         to="/orders/$orderId"
@@ -130,7 +135,9 @@ export function BoardColumns({ columns }: { columns: ServiceBoardColumn[] }) {
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="text-muted-foreground text-xs">
-                          {step.startable ? 'Ready to start' : 'Waiting for a free slot'}
+                          {step.startable
+                            ? 'Ready to start'
+                            : 'Waiting for a free slot'}
                         </span>
                         <Button
                           size="sm"

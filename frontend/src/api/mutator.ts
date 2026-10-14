@@ -9,7 +9,10 @@ import { request } from './client'
  */
 type MutatorConfig = RequestInit & { data?: unknown }
 
-export function customInstance<T>(url: string, config: MutatorConfig = {}): Promise<T> {
+export function customInstance<T>(
+  url: string,
+  config: MutatorConfig = {},
+): Promise<T> {
   const { data, body, ...init } = config
   const payload = body ?? data
   return request<T>(url, {

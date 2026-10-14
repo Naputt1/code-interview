@@ -22,7 +22,10 @@ function inputSummary(process: DomainProcess): string {
   const inputs = process.inputs ?? []
   if (inputs.length === 0) return '—'
   return inputs
-    .map((input) => `${input.resource?.name ?? `#${input.resourceId}`} ×${formatNumber(input.quantity)}`)
+    .map(
+      (input) =>
+        `${input.resource?.name ?? `#${input.resourceId}`} ×${formatNumber(input.quantity)}`,
+    )
     .join(', ')
 }
 
@@ -68,12 +71,16 @@ export function ProcessTable() {
             <TableBody>
               {rows.map((process) => (
                 <TableRow key={process.id}>
-                  <TableCell className="pl-6 tabular-nums">{process.position}</TableCell>
+                  <TableCell className="pl-6 tabular-nums">
+                    {process.position}
+                  </TableCell>
                   <TableCell className="font-medium">{process.name}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {process.wipLimit ?? 'Unlimited'}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{inputSummary(process)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {inputSummary(process)}
+                  </TableCell>
                   <TableCell className="pr-6">
                     <div className="flex justify-end gap-1">
                       <Button
@@ -89,7 +96,11 @@ export function ProcessTable() {
                       </Button>
                       <ConfirmDialog
                         trigger={
-                          <Button size="icon" variant="ghost" aria-label="Delete process">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label="Delete process"
+                          >
                             <Trash2 />
                           </Button>
                         }
@@ -105,7 +116,10 @@ export function ProcessTable() {
               ))}
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
+                  <TableCell
+                    colSpan={5}
+                    className="text-muted-foreground py-8 text-center"
+                  >
                     No processes yet. Define the first step of the sequence.
                   </TableCell>
                 </TableRow>

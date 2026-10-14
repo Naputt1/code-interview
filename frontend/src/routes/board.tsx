@@ -29,7 +29,10 @@ function BoardPage() {
           <h1 className="text-2xl font-semibold">Production board</h1>
           <p className="text-muted-foreground text-sm">
             Orders in progress at each step, and the queue behind them,{' '}
-            {live ? `refreshed every ${POLL_MS / 1000}s` : 'auto-refresh paused'}.
+            {live
+              ? `refreshed every ${POLL_MS / 1000}s`
+              : 'auto-refresh paused'}
+            .
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setLive(!live)}>

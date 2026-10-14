@@ -29,7 +29,9 @@ export function CancelOrderButton({
           className="size-7"
           aria-label={`Cancel ${reference}`}
           title={
-            cancellable ? 'Cancel order' : 'Only an order that has not started can be cancelled'
+            cancellable
+              ? 'Cancel order'
+              : 'Only an order that has not started can be cancelled'
           }
           disabled={!cancellable}
         >

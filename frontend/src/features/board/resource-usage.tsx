@@ -1,5 +1,11 @@
 import type { ServiceResourceUsage } from '@/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -10,12 +16,18 @@ import {
 } from '@/components/ui/table'
 import { formatNumber } from '@/lib/format'
 
-export function ResourceUsagePanel({ resources }: { resources: ServiceResourceUsage[] }) {
+export function ResourceUsagePanel({
+  resources,
+}: {
+  resources: ServiceResourceUsage[]
+}) {
   return (
     <Card className="gap-3">
       <CardHeader>
         <CardTitle>Resource consumption</CardTitle>
-        <CardDescription>Recorded when a step starts, across all orders.</CardDescription>
+        <CardDescription>
+          Recorded when a step starts, across all orders.
+        </CardDescription>
       </CardHeader>
       <CardContent className="px-0">
         <Table>
@@ -34,12 +46,18 @@ export function ResourceUsagePanel({ resources }: { resources: ServiceResourceUs
               const consumed = usage.consumed ?? 0
               const capacity = resource?.capacity ?? null
               const pct =
-                capacity && capacity > 0 ? Math.min(100, Math.round((consumed / capacity) * 100)) : null
+                capacity && capacity > 0
+                  ? Math.min(100, Math.round((consumed / capacity) * 100))
+                  : null
 
               return (
                 <TableRow key={resource?.id ?? 0}>
-                  <TableCell className="pl-6 font-medium">{resource?.name}</TableCell>
-                  <TableCell className="text-muted-foreground capitalize">{resource?.kind}</TableCell>
+                  <TableCell className="pl-6 font-medium">
+                    {resource?.name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground capitalize">
+                    {resource?.kind}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatNumber(consumed)} {resource?.unit}
                   </TableCell>
@@ -54,9 +72,14 @@ export function ResourceUsagePanel({ resources }: { resources: ServiceResourceUs
                     ) : (
                       <div className="flex items-center gap-2">
                         <div className="bg-muted h-2 w-24 overflow-hidden rounded-full">
-                          <div className="bg-primary h-full rounded-full" style={{ width: `${pct}%` }} />
+                          <div
+                            className="bg-primary h-full rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
-                        <span className="text-muted-foreground text-xs tabular-nums">{pct}%</span>
+                        <span className="text-muted-foreground text-xs tabular-nums">
+                          {pct}%
+                        </span>
                       </div>
                     )}
                   </TableCell>
@@ -65,7 +88,10 @@ export function ResourceUsagePanel({ resources }: { resources: ServiceResourceUs
             })}
             {resources.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground py-6 text-center">
+                <TableCell
+                  colSpan={5}
+                  className="text-muted-foreground py-6 text-center"
+                >
                   No resources defined yet.
                 </TableCell>
               </TableRow>

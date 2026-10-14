@@ -20,7 +20,9 @@ export function OverviewCards({ counts }: { counts?: ServiceOrderCounts }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4">
-            <div className="text-2xl font-semibold tabular-nums">{item.value}</div>
+            <div className="text-2xl font-semibold tabular-nums">
+              {item.value}
+            </div>
           </CardContent>
         </Card>
       ))}

@@ -16,12 +16,16 @@ export function OrderStepList({
   const complete = useCompleteStep()
 
   const orderId = order.id ?? 0
-  const steps = [...(order.steps ?? [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+  const steps = [...(order.steps ?? [])].sort(
+    (a, b) => (a.position ?? 0) - (b.position ?? 0),
+  )
 
   return (
     <ol className="flex flex-col gap-3">
       {steps.map((step, index) => {
-        const previousDone = steps.slice(0, index).every((previous) => previous.status === 'done')
+        const previousDone = steps
+          .slice(0, index)
+          .every((previous) => previous.status === 'done')
         const canStart =
           step.status === 'queued' &&
           previousDone &&
@@ -38,7 +42,9 @@ export function OrderStepList({
                   {index + 1}
                 </span>
                 <div>
-                  <div className="font-medium">{step.process?.name ?? 'Step'}</div>
+                  <div className="font-medium">
+                    {step.process?.name ?? 'Step'}
+                  </div>
                   <div className="text-muted-foreground text-xs">
                     {step.status === 'running'
                       ? `Running for ${formatDuration(step.startedAt)}`
@@ -54,7 +60,9 @@ export function OrderStepList({
                   <Button
                     size="sm"
                     disabled={start.isPending}
-                    onClick={() => start.mutate({ id: orderId, stepId: step.id ?? 0 })}
+                    onClick={() =>
+                      start.mutate({ id: orderId, stepId: step.id ?? 0 })
+                    }
                   >
                     Start
                   </Button>
@@ -64,7 +72,9 @@ export function OrderStepList({
                     size="sm"
                     variant="outline"
                     disabled={complete.isPending}
-                    onClick={() => complete.mutate({ id: orderId, stepId: step.id ?? 0 })}
+                    onClick={() =>
+                      complete.mutate({ id: orderId, stepId: step.id ?? 0 })
+                    }
                   >
                     Complete
                   </Button>
@@ -77,9 +87,8 @@ export function OrderStepList({
               {inputs.length === 0
                 ? 'no resources'
                 : inputs
-                    .map(
-                      (input) =>
-                        `${input.resource?.name ?? `#${input.resourceId}`} ×${formatNumber(input.quantity)} ${input.resource?.unit ?? ''}`.trim(),
+                    .map((input) =>
+                      `${input.resource?.name ?? `#${input.resourceId}`} ×${formatNumber(input.quantity)} ${input.resource?.unit ?? ''}`.trim(),
                     )
                     .join(', ')}
             </div>
@@ -87,7 +96,9 @@ export function OrderStepList({
             {(step.consumptions ?? []).length > 0 ? (
               <ul className="mt-3 flex flex-wrap gap-2">
                 {(step.consumptions ?? []).map((consumption) => {
-                  const resource = resourcesById.get(consumption.resourceId ?? 0)
+                  const resource = resourcesById.get(
+                    consumption.resourceId ?? 0,
+                  )
                   return (
                     <li
                       key={consumption.id}

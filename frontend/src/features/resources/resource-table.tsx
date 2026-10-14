@@ -60,11 +60,18 @@ export function ResourceTable() {
             <TableBody>
               {rows.map((resource) => (
                 <TableRow key={resource.id}>
-                  <TableCell className="pl-6 font-medium">{resource.name}</TableCell>
-                  <TableCell className="text-muted-foreground capitalize">{resource.kind}</TableCell>
-                  <TableCell className="text-muted-foreground">{resource.unit}</TableCell>
+                  <TableCell className="pl-6 font-medium">
+                    {resource.name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground capitalize">
+                    {resource.kind}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {resource.unit}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {resource.capacity === undefined || resource.capacity === null
+                    {resource.capacity === undefined ||
+                    resource.capacity === null
                       ? 'Unlimited'
                       : formatNumber(resource.capacity)}
                   </TableCell>
@@ -83,14 +90,20 @@ export function ResourceTable() {
                       </Button>
                       <ConfirmDialog
                         trigger={
-                          <Button size="icon" variant="ghost" aria-label="Delete resource">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label="Delete resource"
+                          >
                             <Trash2 />
                           </Button>
                         }
                         title={`Delete ${resource.name}?`}
                         description="This removes the resource. It is blocked if any step or recorded consumption still uses it."
                         confirmLabel="Delete"
-                        onConfirm={() => remove.mutate({ id: resource.id ?? 0 })}
+                        onConfirm={() =>
+                          remove.mutate({ id: resource.id ?? 0 })
+                        }
                         pending={remove.isPending}
                       />
                     </div>
@@ -99,7 +112,10 @@ export function ResourceTable() {
               ))}
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
+                  <TableCell
+                    colSpan={5}
+                    className="text-muted-foreground py-8 text-center"
+                  >
                     No resources yet. Create one to get started.
                   </TableCell>
                 </TableRow>

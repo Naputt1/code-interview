@@ -55,7 +55,10 @@ export function ResourceDialog({
     }
 
     const parsedCapacity = capacity.trim() === '' ? undefined : Number(capacity)
-    if (parsedCapacity !== undefined && (!Number.isFinite(parsedCapacity) || parsedCapacity < 0)) {
+    if (
+      parsedCapacity !== undefined &&
+      (!Number.isFinite(parsedCapacity) || parsedCapacity < 0)
+    ) {
       toast.error('Capacity must be zero or more, or blank for unlimited')
       return
     }
@@ -81,7 +84,9 @@ export function ResourceDialog({
       <DialogContent>
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>{isEdit ? 'Edit resource' : 'New resource'}</DialogTitle>
+            <DialogTitle>
+              {isEdit ? 'Edit resource' : 'New resource'}
+            </DialogTitle>
             <DialogDescription>
               Resources are materials, machines or labour that steps consume.
             </DialogDescription>
@@ -106,7 +111,11 @@ export function ResourceDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {KINDS.map((option) => (
-                    <SelectItem key={option} value={option} className="capitalize">
+                    <SelectItem
+                      key={option}
+                      value={option}
+                      className="capitalize"
+                    >
                       {option}
                     </SelectItem>
                   ))}
@@ -141,7 +150,11 @@ export function ResourceDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>

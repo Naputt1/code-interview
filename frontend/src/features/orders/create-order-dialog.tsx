@@ -55,7 +55,8 @@ export function CreateOrderDialog() {
           <DialogHeader>
             <DialogTitle>Create order</DialogTitle>
             <DialogDescription>
-              Snapshots the current {processCount}-step sequence onto the new order.
+              Snapshots the current {processCount}-step sequence onto the new
+              order.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">

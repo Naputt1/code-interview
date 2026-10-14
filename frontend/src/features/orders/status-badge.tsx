@@ -31,7 +31,8 @@ export function StatusBadge({
   kind?: 'order' | 'step'
 }) {
   const key = status ?? 'pending'
-  const label = kind === 'step' ? (stepLabels[key] ?? key) : (orderLabels[key] ?? key)
+  const label =
+    kind === 'step' ? (stepLabels[key] ?? key) : (orderLabels[key] ?? key)
 
   return (
     <Badge variant="outline" className={cn('font-medium', styles[key])}>
