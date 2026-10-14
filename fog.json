@@ -1,0 +1,96 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Naputt1/fog/main/fog.schema.json",
+  "dnsmasq": {
+    "domains": ["code-interview"]
+  },
+  "router": {
+    "hostname": "router.code-interview",
+    "dashboard_port": 8080,
+    "shared_network": "fog-router",
+    "tls": {
+      "enabled": true
+    }
+  },
+  "ports": {
+    "api": 0,
+    "frontend": 0,
+    "postgres": 0
+  },
+  "scripts": {
+    "dev": {
+      "concurrent": true,
+      "service": [
+        {
+          "name": "api",
+          "path": "./backend",
+          "cmd": "air",
+          "env": {
+            "SERVER_ADDR": ":${ports.api}",
+            "DATABASE_URL": "postgres://naputt@127.0.0.1:5432/code_interview?sslmode=disable",
+            "GIN_MODE": "debug",
+            "LOG_LEVEL": "info"
+          },
+          "endpoint": [
+            {
+              "name": "http",
+              "host": "${branch}.api.code-interview",
+              "port": "${ports.api}",
+              "health_check": {
+                "kind": "tcp",
+                "target": "127.0.0.1:${ports.api}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "frontend",
+          "path": "./frontend",
+          "cmd": "pnpm dev",
+          "depends_on": ["api"],
+          "env": {
+            "PORT": "${ports.frontend}",
+            "API_PROXY_TARGET": "http://127.0.0.1:${ports.api}",
+            "FOG_BRANCH": "${branch}"
+          },
+          "endpoint": [
+            {
+              "name": "web",
+              "host": "${branch}.code-interview",
+              "port": "${ports.frontend}",
+              "health_check": {
+                "kind": "tcp",
+                "target": "127.0.0.1:${ports.frontend}"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "infra": {
+      "concurrent": true,
+      "service": [
+        {
+          "name": "infra",
+          "path": "./infra",
+          "cmd": "docker compose up -d",
+          "share": true,
+          "env": {
+            "POSTGRES_PORT": "${ports.postgres}"
+          },
+          "endpoint": [
+            {
+              "name": "postgres",
+              "port": "${ports.postgres}",
+              "health_check": {
+                "kind": "docker",
+                "target": "postgres",
+                "compose_file": "docker-compose.yml"
+              }
+            }
+          ],
+          "shutdown_cmd": "docker compose down"
+        }
+      ]
+    }
+  }
+}

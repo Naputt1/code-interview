@@ -1,0 +1,693 @@
+basePath: /api
+consumes:
+- application/json
+definitions:
+  domain.Consumption:
+    properties:
+      id:
+        type: integer
+      occurredAt:
+        type: string
+      orderStepId:
+        type: integer
+      quantity:
+        type: number
+      resourceId:
+        type: integer
+    type: object
+  domain.Order:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      quantity:
+        type: integer
+      reference:
+        type: string
+      status:
+        type: string
+      steps:
+        items:
+          $ref: '#/definitions/domain.OrderStep'
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  domain.OrderStep:
+    properties:
+      consumptions:
+        items:
+          $ref: '#/definitions/domain.Consumption'
+        type: array
+      finishedAt:
+        type: string
+      id:
+        type: integer
+      orderId:
+        type: integer
+      position:
+        type: integer
+      process:
+        $ref: '#/definitions/domain.Process'
+      processId:
+        type: integer
+      startedAt:
+        type: string
+      status:
+        type: string
+    type: object
+  domain.Process:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      inputs:
+        items:
+          $ref: '#/definitions/domain.ProcessResource'
+        type: array
+      name:
+        type: string
+      position:
+        type: integer
+      updatedAt:
+        type: string
+      wipLimit:
+        type: integer
+    type: object
+  domain.ProcessResource:
+    properties:
+      id:
+        type: integer
+      processId:
+        type: integer
+      quantity:
+        type: number
+      resource:
+        $ref: '#/definitions/domain.Resource'
+      resourceId:
+        type: integer
+    type: object
+  domain.Resource:
+    properties:
+      capacity:
+        type: number
+      createdAt:
+        type: string
+      id:
+        type: integer
+      kind:
+        type: string
+      name:
+        type: string
+      unit:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  httpapi.ErrorDetail:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  httpapi.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/httpapi.ErrorDetail'
+    type: object
+  service.Board:
+    properties:
+      columns:
+        items:
+          $ref: '#/definitions/service.BoardColumn'
+        type: array
+    type: object
+  service.BoardColumn:
+    properties:
+      process:
+        $ref: '#/definitions/domain.Process'
+      queued:
+        type: integer
+      running:
+        items:
+          $ref: '#/definitions/service.BoardStep'
+        type: array
+    type: object
+  service.BoardStep:
+    properties:
+      orderId:
+        type: integer
+      quantity:
+        type: integer
+      reference:
+        type: string
+      startedAt:
+        type: string
+      status:
+        type: string
+      stepId:
+        type: integer
+    type: object
+  service.OrderCounts:
+    properties:
+      cancelled:
+        type: integer
+      done:
+        type: integer
+      inProgress:
+        type: integer
+      pending:
+        type: integer
+      total:
+        type: integer
+    type: object
+  service.OrderInput:
+    properties:
+      quantity:
+        type: integer
+      reference:
+        type: string
+    required:
+    - quantity
+    - reference
+    type: object
+  service.Overview:
+    properties:
+      orders:
+        $ref: '#/definitions/service.OrderCounts'
+      processes:
+        items:
+          $ref: '#/definitions/service.ProcessLoad'
+        type: array
+      resources:
+        items:
+          $ref: '#/definitions/service.ResourceUsage'
+        type: array
+    type: object
+  service.ProcessInput:
+    properties:
+      inputs:
+        items:
+          $ref: '#/definitions/service.ProcessResourceInput'
+        type: array
+      name:
+        type: string
+      position:
+        type: integer
+      wipLimit:
+        type: integer
+    required:
+    - name
+    type: object
+  service.ProcessLoad:
+    properties:
+      done:
+        type: integer
+      name:
+        type: string
+      position:
+        type: integer
+      processId:
+        type: integer
+      queued:
+        type: integer
+      running:
+        type: integer
+    type: object
+  service.ProcessResourceInput:
+    properties:
+      quantity:
+        type: number
+      resourceId:
+        type: integer
+    required:
+    - quantity
+    - resourceId
+    type: object
+  service.ResourceInput:
+    properties:
+      capacity:
+        type: number
+      kind:
+        type: string
+      name:
+        type: string
+      unit:
+        type: string
+    required:
+    - kind
+    - name
+    - unit
+    type: object
+  service.ResourceUsage:
+    properties:
+      consumed:
+        type: number
+      remaining:
+        type: number
+      resource:
+        $ref: '#/definitions/domain.Resource'
+      usedBy:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: Track orders through a configurable multi-step manufacturing process
+    and monitor resource consumption.
+  title: Manufacturing Process Tracker API
+  version: 1.0.0
+paths:
+  /board:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.Board'
+      summary: Orders currently in progress at each step
+      tags:
+      - views
+  /consumptions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Consumption'
+            type: array
+      summary: Recent entries from the consumption ledger
+      tags:
+      - views
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness probe
+      tags:
+      - system
+  /orders:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Order'
+            type: array
+      summary: List all orders with their steps
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order payload
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/service.OrderInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Create an order and snapshot the current process sequence into its
+        steps
+      tags:
+      - orders
+  /orders/{id}:
+    get:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Get one order with steps and consumption
+      tags:
+      - orders
+  /orders/{id}/cancel:
+    post:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Cancel an order that has no running step
+      tags:
+      - orders
+  /orders/{id}/steps/{stepId}/complete:
+    post:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order step ID
+        in: path
+        name: stepId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Complete an order's running step
+      tags:
+      - orders
+  /orders/{id}/steps/{stepId}/start:
+    post:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order step ID
+        in: path
+        name: stepId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Start an order's step (checks sequence, WIP limit and resource capacity)
+      tags:
+      - orders
+  /overview:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.Overview'
+      summary: Status of all orders, per-step load and resource consumption
+      tags:
+      - views
+  /processes:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Process'
+            type: array
+      summary: List processes in sequence order
+      tags:
+      - processes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Process payload
+        in: body
+        name: process
+        required: true
+        schema:
+          $ref: '#/definitions/service.ProcessInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Process'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Create a process (step) with its resource recipe
+      tags:
+      - processes
+  /processes/{id}:
+    delete:
+      parameters:
+      - description: Process ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Delete a process
+      tags:
+      - processes
+    get:
+      parameters:
+      - description: Process ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Process'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Get one process
+      tags:
+      - processes
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Process ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Process payload
+        in: body
+        name: process
+        required: true
+        schema:
+          $ref: '#/definitions/service.ProcessInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Process'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Update a process, its recipe and/or its place in the sequence
+      tags:
+      - processes
+  /resources:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Resource'
+            type: array
+      summary: List all resources
+      tags:
+      - resources
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource payload
+        in: body
+        name: resource
+        required: true
+        schema:
+          $ref: '#/definitions/service.ResourceInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Resource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Create a resource
+      tags:
+      - resources
+  /resources/{id}:
+    delete:
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Delete a resource
+      tags:
+      - resources
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Resource payload
+        in: body
+        name: resource
+        required: true
+        schema:
+          $ref: '#/definitions/service.ResourceInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Resource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpapi.ErrorResponse'
+      summary: Update a resource
+      tags:
+      - resources
+produces:
+- application/json
+swagger: "2.0"

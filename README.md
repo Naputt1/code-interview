@@ -1,0 +1,149 @@
+# Manufacturing Process Tracker
+
+A prototype platform for tracking orders through a multi-step manufacturing
+process and watching the resources each step consumes. Built for the Meticuly
+preliminary assignment.
+
+The written submission is in [`docs/summary.md`](docs/summary.md); how AI tools
+were used is in [`docs/ai-usage.md`](docs/ai-usage.md).
+
+## What it does
+
+| Scope (from the assignment) | Where in the app |
+| --- | --- |
+| create orders and advance them through the defined steps | **Orders** — create an order; **order detail** — Start / Complete each step |
+| view the orders currently in progress at each step | **Board** — one column per process showing the orders running there |
+| observe resource consumption as work progresses | **Board** — Resource consumption panel, updated as steps start |
+| obtain an overview of the current status of all orders | **Board** — status counters and per-process load; **Orders** — the full table |
+
+The line itself (which steps exist, in what order, and what each one consumes)
+is defined by the user in **Setup**, because the assignment deliberately leaves
+it open. Nothing about the sequence is hard-coded.
+
+## Stack
+
+- **Backend** — Go 1.25, Gin, GORM, PostgreSQL. Swagger annotations in the
+  handlers generate the OpenAPI contract.
+- **Frontend** — React 19 + Vite, TanStack Router, TanStack Query, Orval
+  (generated client + hooks), shadcn/ui on Tailwind v4, Zustand for client-only
+  UI state.
+- **Dev** — [fog](https://github.com/Naputt1/fog) runs the API and the web app
+  locally; Docker Compose (or a local Postgres) provides the database.
+
+## How it works
+
+Steps and resources are data, not code. The sequence is the `position` column on
+`processes`, each step's recipe is the `process_resources` join, and every unit
+of consumption is a row in an append-only `consumptions` ledger keyed to the
+`order_step` that caused it. Every consumption figure in the UI is an aggregate
+over that ledger, so the board and the order view can never disagree.
+
+The rules — sequence, WIP limits, capacity, one running step per order, cancel
+rules — all live in one transactional service layer
+(`backend/internal/service`), which is what the tests exercise.
+
+See [`docs/summary.md`](docs/summary.md) for the reasoning behind these choices.
+
+## Layout
+
+```
+backend/
+  cmd/api/main.go            # entry point, migrations + optional seed on start
+  internal/domain/           # GORM models, domain errors
+  internal/service/          # the rules (orders.go, views.go, service.go) + tests
+  internal/httpapi/          # Gin handlers, DTOs, error mapping
+  internal/store/            # connection + embedded migration runner
+  migrations/                # 000001_init.{up,down}.sql, embedded
+  api/swagger/openapi3.yaml  # committed contract, generated from annotations
+  Makefile                   # run / build / test / vet / fmt / check / swagger
+frontend/
+  orval.config.ts            # contract -> typed client + zod schemas
+  src/api/                   # client.ts, mutator.ts, generated gen/ + schemas/
+  src/routes/                # TanStack Router file routes (board, orders, setup)
+  src/features/              # board/, orders/, processes/, resources/
+  src/components/ui/         # shadcn primitives
+  src/state/                 # zustand store (client-only prefs)
+infra/docker-compose.yml     # Postgres for local development
+fog.json                     # local dev orchestration
+```
+
+## Getting started
+
+You need Go 1.25+, Node 24+ with pnpm, and PostgreSQL 16.
+
+### Option A — fog (what the project is developed with)
+
+```sh
+fog dev
+```
+
+`fog.json` starts the API with hot reload, then the Vite dev server wired to it,
+and exposes them at `https://<branch>.api.code-interview` and
+`https://<branch>.code-interview`. It expects a reachable Postgres; the
+`DATABASE_URL` in `fog.json` points at a local instance. If you would rather use
+the Docker database, run the `infra` script and point `DATABASE_URL` at it.
+
+### Option B — Docker Postgres, two terminals
+
+```sh
+docker compose -f infra/docker-compose.yml up -d   # Postgres 16 on :5432
+
+cd backend && make run                             # http://localhost:8080
+cd frontend && pnpm install && pnpm dev            # http://localhost:5173
+```
+
+The database defaults (`tracker/tracker/tracker`) match the Compose service, and
+the Vite dev server proxies `/api` to the API.
+
+### Option C — an existing Postgres, no Docker
+
+```sh
+createdb code_interview
+cd backend
+DATABASE_URL='postgres://<user>@127.0.0.1:5432/code_interview?sslmode=disable' make run
+cd frontend && pnpm install && pnpm dev
+```
+
+Migrations run automatically at API startup. A demo line (Cut → Weld → Paint →
+Assemble, with orders spread across it) is seeded the first time the database has
+no processes; set `SEED_IF_EMPTY=false` to start empty.
+
+## The API contract
+
+The swaggo annotations in the handlers are the source of truth. Regenerating is
+deterministic, and both artefacts are committed so a checkout builds without
+running the generators:
+
+```sh
+cd backend  && make swagger     # -> backend/api/swagger/openapi3.yaml
+cd frontend && pnpm generate    # orval -> src/api/gen (client + Query hooks)
+```
+
+`customInstance` (`src/api/mutator.ts`) routes every generated call through the
+hand-written `request` helper in `src/api/client.ts`, so error shape handling
+stays in one place.
+
+## Checks
+
+```sh
+cd backend  && make check        # gofmt + go vet + go test (needs Postgres)
+cd frontend && pnpm check        # tsc + oxlint
+cd frontend && pnpm build        # typecheck + production build
+```
+
+The backend tests cover the rules rather than the plumbing: sequence enforcement,
+WIP limits, capacity refusal without partial consumption, consumption recorded
+once at start, cancel rules, and refusing to delete a resource still in use. They
+use `TEST_DATABASE_URL` (default: a local `code_interview_test`) and skip when no
+database is reachable.
+
+## A good first walkthrough
+
+1. **Setup → Resources** and create a material with a capacity, e.g.
+   `Steel, material, kg, 100`.
+2. **Setup → Processes** and add a step that consumes it, then a second step so
+   there is a sequence.
+3. **Orders → New order**; open it and **Start** the first step — consumption
+   appears immediately. **Complete** it, then start the next.
+4. **Board** shows the order in the right column, the counters, and the resource
+   consumption accumulating. Completing every step marks the order done.

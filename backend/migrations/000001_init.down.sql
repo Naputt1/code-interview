@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS consumptions;
+DROP TABLE IF EXISTS order_steps;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS process_resources;
+DROP TABLE IF EXISTS processes;
+DROP TABLE IF EXISTS resources;
