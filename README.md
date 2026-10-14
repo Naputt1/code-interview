@@ -26,8 +26,8 @@ hard-coded.
 - **Frontend.** React 19 on Vite, TanStack Router, TanStack Query, Orval for the
   generated client and hooks, shadcn/ui on Tailwind v4, and Zustand for client-only
   UI state.
-- **Dev.** [fog](https://github.com/Naputt1/fog) runs the API and the web app
-  locally. Docker Compose, or a Postgres you already have, provides the database.
+- **Dev.** [fog](https://github.com/Naputt1/fog) runs the API, the web app and a
+  Docker Postgres locally. Compose and a Postgres you already have are supported too.
 
 ## How it works
 
@@ -74,7 +74,8 @@ fog.json                     # local dev orchestration
 
 ## Getting started
 
-You need Go 1.25+, Node 24+ with pnpm, and PostgreSQL 16.
+You need Go 1.25+ and Node 24+ with pnpm. Options A and B supply PostgreSQL 16
+through Docker; Option C uses one you already have.
 
 ### Option A: fog (how the project is developed)
 
@@ -82,11 +83,10 @@ You need Go 1.25+, Node 24+ with pnpm, and PostgreSQL 16.
 fog dev
 ```
 
-`fog.json` starts the API with hot reload, then the Vite dev server wired to it, and
-exposes them at `https://<branch>.api.code-interview` and
-`https://<branch>.code-interview`. It expects a reachable Postgres, and the
-`DATABASE_URL` in `fog.json` points at a local instance. To use the Docker database
-instead, run `fog infra` and point `DATABASE_URL` at it. Ports are assigned
+`fog.json` starts a Docker Postgres and waits for it to become healthy, then starts
+the API with hot reload and the Vite dev server wired to it, exposed at
+`https://<branch>.api.code-interview` and `https://<branch>.code-interview`. The API
+applies its migrations and seeds itself on first start. Ports are assigned
 dynamically, so read them from `fog ls` or `fog logs <pid>`.
 
 Run fog from inside a checkout. It names each instance after its git branch

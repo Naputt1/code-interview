@@ -21,12 +21,34 @@
       "concurrent": true,
       "service": [
         {
+          "name": "infra",
+          "path": "./infra",
+          "cmd": "docker compose up -d",
+          "share": true,
+          "env": {
+            "POSTGRES_PORT": "${ports.postgres}"
+          },
+          "endpoint": [
+            {
+              "name": "postgres",
+              "port": "${ports.postgres}",
+              "health_check": {
+                "kind": "docker",
+                "target": "postgres",
+                "compose_file": "docker-compose.yml"
+              }
+            }
+          ],
+          "shutdown_cmd": "docker compose down"
+        },
+        {
           "name": "api",
           "path": "./backend",
           "cmd": "air",
+          "depends_on": ["infra"],
           "env": {
             "SERVER_ADDR": ":${ports.api}",
-            "DATABASE_URL": "postgres://naputt@127.0.0.1:5432/code_interview?sslmode=disable",
+            "DATABASE_URL": "postgres://tracker:tracker@127.0.0.1:${ports.postgres}/tracker?sslmode=disable",
             "GIN_MODE": "debug",
             "LOG_LEVEL": "info"
           },
@@ -63,32 +85,6 @@
               }
             }
           ]
-        }
-      ]
-    },
-    "infra": {
-      "concurrent": true,
-      "service": [
-        {
-          "name": "infra",
-          "path": "./infra",
-          "cmd": "docker compose up -d",
-          "share": true,
-          "env": {
-            "POSTGRES_PORT": "${ports.postgres}"
-          },
-          "endpoint": [
-            {
-              "name": "postgres",
-              "port": "${ports.postgres}",
-              "health_check": {
-                "kind": "docker",
-                "target": "postgres",
-                "compose_file": "docker-compose.yml"
-              }
-            }
-          ],
-          "shutdown_cmd": "docker compose down"
         }
       ]
     }
