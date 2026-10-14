@@ -105,7 +105,8 @@ auto-migration in production paths** (numbered SQL migrations are the record).
 4. **Open the order and work it.** Only the next step in the sequence can be
    started. **Start** records consumption immediately; **Complete** finishes the
    step and releases the next one. The order is `done` when all steps are done.
-   **Cancel order** is available while no step is running.
+   **Cancel order** is available only before any step has started, and it is
+   offered wherever an order is listed.
 5. **Board.** Read the state of the plant: counters for the whole order book, one
    column per process showing the orders being worked there (with elapsed time
    and a one-click Complete) and, beneath them, the orders waiting at that step

@@ -12,7 +12,7 @@ were used is in [`docs/ai-usage.md`](docs/ai-usage.md).
 | Scope (from the assignment) | Where in the app |
 | --- | --- |
 | create orders and advance them through the defined steps | **Orders** — create an order; **order detail** — Start / Complete each step |
-| view the orders currently in progress at each step | **Board** — one column per process showing the orders running there |
+| view the orders currently in progress at each step | **Board** — one column per process showing the orders running there, and the queue behind them |
 | observe resource consumption as work progresses | **Board** — Resource consumption panel, updated as steps start |
 | obtain an overview of the current status of all orders | **Board** — status counters and per-process load; **Orders** — the full table |
 
@@ -57,8 +57,10 @@ backend/
   api/swagger/openapi3.yaml  # committed contract, generated from annotations
   Makefile                   # run / build / test / vet / fmt / check / swagger
 frontend/
-  orval.config.ts            # contract -> typed client + zod schemas
-  src/api/                   # client.ts, mutator.ts, generated gen/ + schemas/
+  orval.config.ts            # contract -> typed TanStack Query client
+  src/api/                   # client.ts + mutator.ts (hand-written transport),
+                             # gen/ (generated) and the keys/queries/mutations
+                             # module the app imports instead of gen/ directly
   src/routes/                # TanStack Router file routes (board, orders, setup)
   src/features/              # board/, orders/, processes/, resources/
   src/components/ui/         # shadcn primitives
@@ -80,8 +82,14 @@ fog dev
 `fog.json` starts the API with hot reload, then the Vite dev server wired to it,
 and exposes them at `https://<branch>.api.code-interview` and
 `https://<branch>.code-interview`. It expects a reachable Postgres; the
-`DATABASE_URL` in `fog.json` points at a local instance. If you would rather use
-the Docker database, run the `infra` script and point `DATABASE_URL` at it.
+`DATABASE_URL` in `fog.json` points at a local instance. To use the Docker
+database instead, run `fog infra` and point `DATABASE_URL` at it. Ports are
+assigned dynamically — read them from `fog ls` or `fog logs <pid>`.
+
+Run fog from inside a checkout: it names each instance after its git branch
+(`${branch}` in the endpoint hosts), and aborts with `requires a git branch
+(not in a worktree)` when it cannot resolve one. Setting up DNS and the router
+needs sudo the first time.
 
 ### Option B — Docker Postgres, two terminals
 
