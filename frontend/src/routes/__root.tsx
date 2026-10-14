@@ -1,5 +1,4 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import {
   ClipboardList,
   Factory,
@@ -7,6 +6,7 @@ import {
   Settings2,
 } from 'lucide-react'
 
+import { AppDevtools } from '@/components/devtools'
 import { cn } from '@/lib/utils'
 
 export const Route = createRootRoute({
@@ -51,7 +51,7 @@ function RootLayout() {
       <main className="min-w-0 flex-1 px-4 py-6 md:px-8">
         <Outlet />
       </main>
-      <TanStackRouterDevtools position="bottom-right" />
+      <AppDevtools />
     </div>
   )
 }
