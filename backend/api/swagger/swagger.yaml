@@ -140,6 +140,12 @@ definitions:
     type: object
   service.BoardStep:
     properties:
+      cancellable:
+        description: |-
+          Cancellable describes the order, not the step: an order may only be
+          cancelled before any of its steps has started, so this is true only
+          while the whole order is still pending.
+        type: boolean
       orderId:
         type: integer
       quantity:

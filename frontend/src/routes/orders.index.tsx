@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { CancelOrderButton } from '@/features/orders/cancel-order-button'
 import { CreateOrderDialog } from '@/features/orders/create-order-dialog'
 import { StatusBadge } from '@/features/orders/status-badge'
 import { formatNumber } from '@/lib/format'
@@ -45,7 +46,8 @@ function OrdersPage() {
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Progress</TableHead>
-                <TableHead className="pr-6">Current step</TableHead>
+                <TableHead>Current step</TableHead>
+                <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -70,15 +72,22 @@ function OrdersPage() {
                     <TableCell className="text-muted-foreground tabular-nums">
                       {done}/{steps.length}
                     </TableCell>
-                    <TableCell className="pr-6 text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {current?.process?.name ?? '—'}
+                    </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <CancelOrderButton
+                        orderId={order.id ?? 0}
+                        reference={order.reference ?? ''}
+                        cancellable={order.status === 'pending'}
+                      />
                     </TableCell>
                   </TableRow>
                 )
               })}
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
+                  <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
                     No orders yet. Create one to start tracking.
                   </TableCell>
                 </TableRow>

@@ -93,6 +93,12 @@ export interface HttpapiErrorResponse {
 }
 
 export interface ServiceBoardStep {
+  /**
+     * Cancellable describes the order, not the step: an order may only be
+     * cancelled before any of its steps has started, so this is true only
+     * while the whole order is still pending.
+     */
+  cancellable?: boolean;
   orderId?: number;
   quantity?: number;
   reference?: string;

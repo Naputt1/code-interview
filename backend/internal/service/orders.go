@@ -279,16 +279,14 @@ func (s *Service) CancelOrder(ctx context.Context, id int64) (*domain.Order, err
 			return domain.Conflict("order_completed", "a completed order cannot be cancelled")
 		case domain.OrderCancelled:
 			return domain.Conflict("order_cancelled", "this order is already cancelled")
+		case domain.OrderPending:
+			// Nothing has been consumed yet, so a pending order cancels cleanly.
+		default:
+			// Once a step has run its consumption is committed and the order has
+			// to be carried through rather than abandoned.
+			return domain.Conflict("order_started", "an order cannot be cancelled once work has started")
 		}
 
-		var running int64
-		if err := tx.Model(&domain.OrderStep{}).
-			Where("order_id = ? AND status = ?", id, domain.StepRunning).Count(&running).Error; err != nil {
-			return err
-		}
-		if running > 0 {
-			return domain.Conflict("step_running", "complete the running step before cancelling the order")
-		}
 		return tx.Model(&domain.Order{}).Where("id = ?", id).
 			Update("status", domain.OrderCancelled).Error
 	})

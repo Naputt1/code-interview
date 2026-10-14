@@ -5,6 +5,7 @@ import { useCompleteStep, useStartStep } from '@/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { CancelOrderButton } from '@/features/orders/cancel-order-button'
 import { formatDuration, formatNumber } from '@/lib/format'
 
 export function BoardColumns({ columns }: { columns: ServiceBoardColumn[] }) {
@@ -60,9 +61,16 @@ export function BoardColumns({ columns }: { columns: ServiceBoardColumn[] }) {
                       >
                         {step.reference}
                       </Link>
-                      <span className="text-muted-foreground text-xs tabular-nums">
-                        ×{formatNumber(step.quantity)}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground text-xs tabular-nums">
+                          ×{formatNumber(step.quantity)}
+                        </span>
+                        <CancelOrderButton
+                          orderId={step.orderId ?? 0}
+                          reference={step.reference ?? ''}
+                          cancellable={step.cancellable ?? false}
+                        />
+                      </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <span className="text-muted-foreground text-xs">
@@ -109,9 +117,16 @@ export function BoardColumns({ columns }: { columns: ServiceBoardColumn[] }) {
                             {step.reference}
                           </Link>
                         </div>
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                          ×{formatNumber(step.quantity)}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground text-xs tabular-nums">
+                            ×{formatNumber(step.quantity)}
+                          </span>
+                          <CancelOrderButton
+                            orderId={step.orderId ?? 0}
+                            reference={step.reference ?? ''}
+                            cancellable={step.cancellable ?? false}
+                          />
+                        </div>
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="text-muted-foreground text-xs">

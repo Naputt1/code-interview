@@ -52,8 +52,9 @@ The rules, which are the actual process reasoning:
    running orders.
 5. **One running step per order** — enforced at start, and an order becomes `done`
    when every step is done.
-6. **Cancellation** — an order with a running step cannot be cancelled, because
-   that would strand already-committed resources. A resource or process that is
+6. **Cancellation** — an order can be cancelled only before any of its steps has
+   started, so cancelling never strands already-committed resources; an order
+   that has begun work must be carried through. A resource or process that is
    still referenced by a recipe or a ledger entry cannot be deleted.
 
 The four scope bullets then map onto three screens: **Setup** (define the line),

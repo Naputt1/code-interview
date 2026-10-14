@@ -21,6 +21,36 @@ type BoardStep struct {
 	// earlier step of the order is done and the process has a free WIP slot,
 	// so the board can offer a Start button that will really be accepted.
 	Startable bool `json:"startable"`
+	// Cancellable describes the order, not the step: an order may only be
+	// cancelled before any of its steps has started, so this is true only
+	// while the whole order is still pending.
+	Cancellable bool `json:"cancellable"`
+}
+
+// boardStepRow is the raw shape both board queries scan into. OrderStatus is
+// the status of the order the step belongs to, which decides whether the whole
+// order can still be cancelled.
+type boardStepRow struct {
+	StepID      int64
+	OrderID     int64
+	Reference   string
+	Quantity    int
+	Status      string
+	StartedAt   *time.Time
+	OrderStatus string
+}
+
+func (r boardStepRow) step(startable bool) BoardStep {
+	return BoardStep{
+		StepID:      r.StepID,
+		OrderID:     r.OrderID,
+		Reference:   r.Reference,
+		Quantity:    r.Quantity,
+		Status:      r.Status,
+		StartedAt:   r.StartedAt,
+		Startable:   startable,
+		Cancellable: r.OrderStatus == domain.OrderPending,
+	}
 }
 
 type BoardColumn struct {
@@ -46,14 +76,18 @@ func (s *Service) Board(ctx context.Context) (*Board, error) {
 	for _, process := range processes {
 		column := BoardColumn{Process: process, Running: []BoardStep{}}
 
-		running := []BoardStep{}
+		rows := []boardStepRow{}
 		if err := s.db.WithContext(ctx).Table("order_steps AS os").
-			Select("os.id AS step_id, os.order_id, o.reference, o.quantity, os.status, os.started_at").
+			Select("os.id AS step_id, os.order_id, o.reference, o.quantity, os.status, os.started_at, o.status AS order_status").
 			Joins("JOIN orders AS o ON o.id = os.order_id").
 			Where("os.process_id = ? AND os.status = ? AND o.status <> ?", process.ID, domain.StepRunning, domain.OrderCancelled).
 			Order("os.started_at, os.id").
-			Scan(&running).Error; err != nil {
+			Scan(&rows).Error; err != nil {
 			return nil, fmt.Errorf("list running steps: %w", err)
+		}
+		running := make([]BoardStep, 0, len(rows))
+		for _, row := range rows {
+			running = append(running, row.step(false))
 		}
 		column.Running = running
 
@@ -61,9 +95,9 @@ func (s *Service) Board(ctx context.Context) (*Board, error) {
 		// column of its current step, so a column shows what is running there
 		// plus what is next in line for it — never the steps further down an
 		// order's route. Oldest order first, so the column reads as a queue.
-		queued := []BoardStep{}
+		queuedRows := []boardStepRow{}
 		if err := s.db.WithContext(ctx).Table("order_steps AS os").
-			Select("os.id AS step_id, os.order_id, o.reference, o.quantity, os.status, os.started_at").
+			Select("os.id AS step_id, os.order_id, o.reference, o.quantity, os.status, os.started_at, o.status AS order_status").
 			Joins("JOIN orders AS o ON o.id = os.order_id").
 			Where(`os.process_id = ? AND os.status = ? AND o.status <> ?
 				AND NOT EXISTS (
@@ -73,13 +107,14 @@ func (s *Service) Board(ctx context.Context) (*Board, error) {
 					  AND earlier.status <> ?
 				)`, process.ID, domain.StepQueued, domain.OrderCancelled, domain.StepDone).
 			Order("o.created_at, os.id").
-			Scan(&queued).Error; err != nil {
+			Scan(&queuedRows).Error; err != nil {
 			return nil, fmt.Errorf("list queued steps: %w", err)
 		}
 		// Every row above is next in line, so only the WIP limit can hold it back.
 		slotFree := process.WIPLimit == nil || len(column.Running) < *process.WIPLimit
-		for i := range queued {
-			queued[i].Startable = slotFree
+		queued := make([]BoardStep, 0, len(queuedRows))
+		for _, row := range queuedRows {
+			queued = append(queued, row.step(slotFree))
 		}
 		column.Queued = queued
 

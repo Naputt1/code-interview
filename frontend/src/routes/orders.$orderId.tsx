@@ -38,10 +38,8 @@ function OrderDetailPage() {
   const data = order.data
   const steps = data.steps ?? []
   const doneCount = steps.filter((step) => step.status === 'done').length
-  const cancellable =
-    data.status !== 'done' &&
-    data.status !== 'cancelled' &&
-    !steps.some((step) => step.status === 'running')
+  // An order can only be cancelled before any of its steps has started.
+  const cancellable = data.status === 'pending'
 
   const resourcesById = new Map((resources.data ?? []).map((resource) => [resource.id ?? 0, resource]))
 

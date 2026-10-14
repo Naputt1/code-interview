@@ -885,6 +885,10 @@
         "service.BoardStep": {
             "type": "object",
             "properties": {
+                "cancellable": {
+                    "description": "Cancellable describes the order, not the step: an order may only be\ncancelled before any of its steps has started, so this is true only\nwhile the whole order is still pending.",
+                    "type": "boolean"
+                },
                 "orderId": {
                     "type": "integer"
                 },

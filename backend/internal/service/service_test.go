@@ -202,20 +202,32 @@ func TestConsumptionRecordedOnStartAndOrderCompletes(t *testing.T) {
 	}
 }
 
-// Cancelling while a step is running would lose work in progress, so it is
-// refused; a pending order cancels cleanly.
-func TestCancelRefusedWhileRunning(t *testing.T) {
+// Cancelling is only allowed before any work has started: once a step has run,
+// its consumption is committed and the order has to be finished instead.
+func TestCancelRefusedOnceStarted(t *testing.T) {
 	s := newService(t)
 	sheet := mustResource(t, s, "Sheet", domain.KindMaterial, "kg", nil)
 	mustProcess(t, s, "Cut", nil, ProcessResourceInput{ResourceID: sheet.ID, Quantity: 1})
-	running := mustOrder(t, s, "CAN-1", 1)
-	pending := mustOrder(t, s, "CAN-2", 1)
+	mustProcess(t, s, "Weld", nil, ProcessResourceInput{ResourceID: sheet.ID, Quantity: 1})
+	started := mustOrder(t, s, "CAN-1", 1)
+	parked := mustOrder(t, s, "CAN-2", 1)
+	pending := mustOrder(t, s, "CAN-3", 1)
 
-	if _, err := s.StartStep(ctx, running.ID, stepID(t, running, 1)); err != nil {
+	if _, err := s.StartStep(ctx, started.ID, stepID(t, started, 1)); err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	_, err := s.CancelOrder(ctx, running.ID)
-	wantsCode(t, err, "step_running")
+	_, err := s.CancelOrder(ctx, started.ID)
+	wantsCode(t, err, "order_started")
+
+	// Finished its Cut and waiting at Weld: started, so still refused.
+	if _, err := s.StartStep(ctx, parked.ID, stepID(t, parked, 1)); err != nil {
+		t.Fatalf("start parked: %v", err)
+	}
+	if _, err := s.CompleteStep(ctx, parked.ID, stepID(t, parked, 1)); err != nil {
+		t.Fatalf("complete parked: %v", err)
+	}
+	_, err = s.CancelOrder(ctx, parked.ID)
+	wantsCode(t, err, "order_started")
 
 	cancelled, err := s.CancelOrder(ctx, pending.ID)
 	if err != nil {
