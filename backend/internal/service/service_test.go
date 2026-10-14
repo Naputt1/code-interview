@@ -446,3 +446,52 @@ func TestBoardListsQueuedAndFlagsStartable(t *testing.T) {
 		t.Error("B-2 should wait while B-1 holds the only Weld slot")
 	}
 }
+
+func resourceUsage(t *testing.T, s *Service, resourceID int64) ResourceUsage {
+	t.Helper()
+	overview, err := s.Overview(ctx)
+	if err != nil {
+		t.Fatalf("overview: %v", err)
+	}
+	for _, usage := range overview.Resources {
+		if usage.Resource.ID == resourceID {
+			return usage
+		}
+	}
+	t.Fatalf("overview reports no usage for resource %d", resourceID)
+	return ResourceUsage{}
+}
+
+func TestCapacityCannotBeLoweredBelowConsumption(t *testing.T) {
+	s := newService(t)
+	sheet := mustResource(t, s, "Sheet", domain.KindMaterial, "kg", floatPtr(10))
+	mustProcess(t, s, "Cut", nil, ProcessResourceInput{ResourceID: sheet.ID, Quantity: 4})
+	order := mustOrder(t, s, "CAP-1", 1)
+	if _, err := s.StartStep(ctx, order.ID, stepID(t, order, 1)); err != nil {
+		t.Fatalf("start step: %v", err)
+	}
+
+	edit := func(capacity float64) error {
+		_, err := s.UpdateResource(ctx, sheet.ID, ResourceInput{
+			Name:     "Sheet",
+			Kind:     domain.KindMaterial,
+			Unit:     "kg",
+			Capacity: floatPtr(capacity),
+		})
+		return err
+	}
+
+	// 4 kg is already spent, so 4 is the floor and anything under it is refused.
+	if err := edit(4); err != nil {
+		t.Fatalf("capacity equal to consumption should be allowed: %v", err)
+	}
+	wantsCode(t, edit(3), "capacity_below_usage")
+
+	usage := resourceUsage(t, s, sheet.ID)
+	if usage.Resource.Capacity == nil || *usage.Resource.Capacity != 4 {
+		t.Fatalf("capacity = %v after the refused edit, want 4", usage.Resource.Capacity)
+	}
+	if usage.Remaining == nil || *usage.Remaining != 0 {
+		t.Fatalf("remaining = %v, want 0 rather than a negative remainder", usage.Remaining)
+	}
+}

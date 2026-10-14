@@ -34,6 +34,8 @@ The rules:
    consumption is visible during the work, not only after it.
 3. **Capacity.** A start that would exceed a finite resource's remaining stock is
    refused before anything is written, so no half-recorded step reaches the ledger.
+   Consumption is cumulative and never released, so capacity is a floor as well:
+   it cannot be lowered below what the resource has already consumed.
 4. **WIP limit.** A start is refused while the process is already running its
    limit.
 5. **One running step per order.** An order becomes done when every step is done.

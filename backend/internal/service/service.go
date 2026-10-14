@@ -87,6 +87,23 @@ func (s *Service) UpdateResource(ctx context.Context, id int64, in ResourceInput
 		}
 		return nil, fmt.Errorf("load resource: %w", err)
 	}
+	// Consumption is cumulative and never released, so capacity is the total
+	// stock the resource has ever had. Dropping it below what has already been
+	// spent would leave the ledger overdrawn and every later start refused with
+	// a negative remainder, so refuse that edit instead.
+	if in.Capacity != nil {
+		var consumed float64
+		if err := s.db.WithContext(ctx).Model(&domain.Consumption{}).
+			Where("resource_id = ?", id).
+			Select("COALESCE(SUM(quantity), 0)").Scan(&consumed).Error; err != nil {
+			return nil, fmt.Errorf("sum consumption: %w", err)
+		}
+		if *in.Capacity < consumed {
+			return nil, domain.Conflict("capacity_below_usage", fmt.Sprintf(
+				"%.2f %s of %s has already been consumed, so its capacity cannot be set below that",
+				consumed, resource.Unit, resource.Name))
+		}
+	}
 	resource.Name = name
 	resource.Kind = in.Kind
 	resource.Unit = strings.TrimSpace(in.Unit)
